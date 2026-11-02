@@ -23,8 +23,13 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+
       - name: Bagimliliklari kur
         run: npm install
 
+      - name: Expo paket uyumlulugunu kontrol et
+        run: npx expo install --check
+
       - name: Android APK derlemesini baslat
         run: eas build --platform android --profile preview --non-interactive --no-wait
+        

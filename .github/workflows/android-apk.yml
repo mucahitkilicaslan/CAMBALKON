@@ -1,0 +1,30 @@
+
+name: Cam Balkon Pro Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Proje dosyalarini al
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Expo ve EAS kur
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Bagimliliklari kur
+        run: npm install
+
+      - name: Android APK derlemesini baslat
+        run: eas build --platform android --profile preview --non-interactive --no-wait

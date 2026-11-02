@@ -1,4 +1,5 @@
-const number = (value) => {
+
+const number = value => {
   const n = Number(String(value ?? '0').replace(',', '.'));
   return Number.isFinite(n) ? n : 0;
 };
@@ -7,34 +8,34 @@ export function calculate(data) {
   const width = number(data.width);
   const height = number(data.height);
 
+  const rawPanels = number(data.panels);
   const panels = Math.max(
     1,
-    Math.min(100, Math.floor(number(data.panels) || 1))
+    Math.min(100, Math.floor(rawPanels || 1))
   );
 
-  // Cam eni otomatik hesaplama
+  // OTOMATIK CAM ENI
+  // Toplam genislikten 25 mm dusulur.
+  // Panel adedine bolunur.
+  // Her panelden 0.6 mm dusulur.
   const usableWidth = width - 25;
   const panelWidth = usableWidth / panels;
   const netWidth = panelWidth - 0.6;
 
-  // Cam boyu mevcut manuel hesaplama
-  const profileH = number(data.profileH);
-  const sealH = number(data.sealH);
-  const gapH = number(data.gapH);
-
-  const netHeight =
-    height - profileH - sealH - gapH;
+  // OTOMATIK CAM BOYU
+  // Toplam yukseklikten 170 mm dusulur.
+  const netHeight = height - 170;
 
   const valid =
     width > 25 &&
-    height > 0 &&
-    number(data.panels) >= 1 &&
-    Number.isInteger(number(data.panels)) &&
-    number(data.panels) <= 100 &&
-    [profileH, sealH, gapH].every(v => v >= 0) &&
+    height > 170 &&
+    Number.isInteger(rawPanels) &&
+    rawPanels >= 1 &&
+    rawPanels <= 100 &&
     netWidth > 0 &&
     netHeight > 0;
 
+  // FIYAT HESAPLAMA
   const area = Math.max(
     0,
     (width * height) / 1000000

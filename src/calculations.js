@@ -7,24 +7,39 @@ const number = value => {
 export function calculate(data) {
   const width = number(data.width);
   const height = number(data.height);
-
   const rawPanels = number(data.panels);
+
   const panels = Math.max(
     1,
     Math.min(100, Math.floor(rawPanels || 1))
   );
 
-  // OTOMATIK CAM ENI
-  // Toplam genislikten 25 mm dusulur.
-  // Panel adedine bolunur.
-  // Her panelden 0.6 mm dusulur.
+  // CAM ENI
   const usableWidth = width - 25;
   const panelWidth = usableWidth / panels;
   const netWidth = panelWidth - 0.6;
 
-  // OTOMATIK CAM BOYU
-  // Toplam yukseklikten 170 mm dusulur.
+  // CAM BOYU
   const netHeight = height - 170;
+
+  // ALUMINYUM PROFIL KESIMLERI
+  const caseProfileLength = width;
+  const glassProfileLength = panelWidth - 10;
+
+  const upperCaseQty = 1;
+  const lowerCaseQty = 1;
+  const upperGlassQty = panels;
+  const lowerGlassQty = panels;
+
+  const caseTotalLength = Math.max(0, width) * 2;
+
+  const glassTotalLength =
+    Math.max(0, glassProfileLength) * panels * 2;
+
+  const aluminumTotalLength =
+    caseTotalLength + glassTotalLength;
+
+  const aluminumTotalPieces = 2 + panels * 2;
 
   const valid =
     width > 25 &&
@@ -33,13 +48,11 @@ export function calculate(data) {
     rawPanels >= 1 &&
     rawPanels <= 100 &&
     netWidth > 0 &&
-    netHeight > 0;
+    netHeight > 0 &&
+    glassProfileLength > 0;
 
-  // FIYAT HESAPLAMA
-  const area = Math.max(
-    0,
-    (width * height) / 1000000
-  );
+  // FIYAT HESABI
+  const area = Math.max(0, width * height / 1000000);
 
   const price = Math.max(0, number(data.price));
   const installation = Math.max(0, number(data.installation));
@@ -59,10 +72,10 @@ export function calculate(data) {
     material + installation + transport + other;
 
   const discount =
-    (beforeDiscount * discountRate) / 100;
+    beforeDiscount * discountRate / 100;
 
   const subtotal = beforeDiscount - discount;
-  const vat = (subtotal * vatRate) / 100;
+  const vat = subtotal * vatRate / 100;
   const total = subtotal + vat;
 
   return {
@@ -80,5 +93,16 @@ export function calculate(data) {
     subtotal,
     vat,
     total,
+
+    caseProfileLength,
+    glassProfileLength,
+    upperCaseQty,
+    lowerCaseQty,
+    upperGlassQty,
+    lowerGlassQty,
+    caseTotalLength,
+    glassTotalLength,
+    aluminumTotalLength,
+    aluminumTotalPieces,
   };
 }

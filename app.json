@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Cam Balkon Pro",
@@ -12,6 +13,11 @@
       "edgeToEdgeEnabled": true,
       "package": "com.cambalkonpro.teklif",
       "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5bc914ba-309c-4a6d-a869-96d0ceb70a73"
+      }
     }
   }
 }

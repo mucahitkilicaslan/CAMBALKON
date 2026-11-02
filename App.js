@@ -15,7 +15,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculate } from './src/calculations';
 
-// GitHub ana klasorune yuklenen profil fotograflari
+// GitHub ana klasöründeki gerçek profil fotoğrafları
 const kasaImage = require(
   './katlanir-cam-aluminyum-duz-kasa-profil-30d010.png'
 );
@@ -75,12 +75,20 @@ function PanelDrawing({ calc }) {
       </Text>
 
       <Text style={styles.note}>
-        Üst ve alt kasa tek parça, cam profilleri panel bazında
+        Üst ve alt kasa aynı gerçek profil fotoğrafıyla gösterilir.
+        Cam profilleri her panelde ayrı bulunur.
       </Text>
 
       <View style={styles.drawing}>
         <View style={styles.caseProfile}>
-          <Text style={styles.caseText}>ÜST KASA</Text>
+          <Image
+            source={kasaImage}
+            style={styles.casePhoto}
+            resizeMode="stretch"
+          />
+          <Text style={styles.caseLabel}>
+            ÜST KASA
+          </Text>
         </View>
 
         <View style={styles.panelRow}>
@@ -95,7 +103,11 @@ function PanelDrawing({ calc }) {
                 },
               ]}
             >
-              <View style={styles.glassProfile} />
+              <Image
+                source={camImage}
+                style={styles.glassProfile}
+                resizeMode="stretch"
+              />
 
               <View
                 style={[
@@ -109,19 +121,37 @@ function PanelDrawing({ calc }) {
                 ]}
               >
                 {count <= 12 && (
-                  <Text style={styles.panelNumber}>
+                  <Text
+                    style={[
+                      styles.panelNumber,
+                      {
+                        fontSize: count > 8 ? 10 : 13,
+                      },
+                    ]}
+                  >
                     {index + 1}
                   </Text>
                 )}
               </View>
 
-              <View style={styles.glassProfile} />
+              <Image
+                source={camImage}
+                style={styles.glassProfile}
+                resizeMode="stretch"
+              />
             </View>
           ))}
         </View>
 
         <View style={styles.caseProfile}>
-          <Text style={styles.caseText}>ALT KASA</Text>
+          <Image
+            source={kasaImage}
+            style={styles.casePhoto}
+            resizeMode="stretch"
+          />
+          <Text style={styles.caseLabel}>
+            ALT KASA
+          </Text>
         </View>
       </View>
 
@@ -148,8 +178,9 @@ function PanelDrawing({ calc }) {
       </Text>
 
       <Text style={styles.note}>
-        Çizim şematiktir. Profil fotoğrafları aşağıdaki
-        kesim listesinde gösterilmektedir.
+        Çizim şematiktir. Gerçek profil fotoğrafları
+        ince şeritlere yerleştirilmiştir; teknik ölçekli
+        profil kesit çizimi değildir.
       </Text>
     </View>
   );
@@ -158,7 +189,9 @@ function PanelDrawing({ calc }) {
 function ProfileCard({ title, source, length, quantity }) {
   return (
     <View style={styles.profileCard}>
-      <Text style={styles.profileTitle}>{title}</Text>
+      <Text style={styles.profileTitle}>
+        {title}
+      </Text>
 
       <Image
         source={source}
@@ -331,7 +364,9 @@ export default function App() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.brand}>CAM BALKON PRO</Text>
+        <Text style={styles.brand}>
+          CAM BALKON PRO
+        </Text>
 
         <Text style={styles.title}>
           Katlanır Cam Balkon
@@ -469,27 +504,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F6FA',
   },
+
   content: {
     padding: 18,
     paddingBottom: 55,
   },
+
   brand: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 2,
     color: '#326D96',
   },
+
   title: {
     fontSize: 27,
     fontWeight: '800',
     color: '#14354D',
     marginTop: 5,
   },
+
   subtitle: {
     fontSize: 13,
     color: '#62788B',
     marginBottom: 16,
   },
+
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -498,21 +538,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E8EF',
   },
+
   section: {
     fontSize: 17,
     fontWeight: '800',
     color: '#173D59',
     marginBottom: 12,
   },
+
   field: {
     marginBottom: 10,
   },
+
   label: {
     fontSize: 12,
     fontWeight: '700',
     color: '#536B7C',
     marginBottom: 5,
   },
+
   input: {
     borderWidth: 1,
     borderColor: '#CCD9E4',
@@ -523,6 +567,7 @@ const styles = StyleSheet.create({
     color: '#12344D',
     backgroundColor: '#FBFDFF',
   },
+
   subheading: {
     fontWeight: '700',
     color: '#35566C',
@@ -530,12 +575,14 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 15,
   },
+
   value: {
     fontWeight: '800',
     color: '#164F77',
     fontSize: 15,
     marginVertical: 8,
   },
+
   note: {
     color: '#697C8A',
     fontSize: 11,
@@ -543,11 +590,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 5,
   },
+
   error: {
     color: '#C0392B',
     fontWeight: '700',
     marginTop: 8,
   },
+
   drawing: {
     borderWidth: 2,
     borderColor: '#34566B',
@@ -555,40 +604,61 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
   },
+
   caseProfile: {
     height: 22,
-    backgroundColor: '#738A9B',
+    backgroundColor: '#B8C4CC',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  caseText: {
-    color: '#FFFFFF',
+
+  casePhoto: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    opacity: 0.85,
+  },
+
+  caseLabel: {
+    color: '#173D59',
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
+
   panelRow: {
     flexDirection: 'row',
     height: 170,
   },
+
   panel: {
     flex: 1,
     minWidth: 0,
     borderRightColor: '#34566B',
   },
+
   glassProfile: {
-    height: 9,
+    width: '100%',
+    height: 8,
     backgroundColor: '#A4B5C0',
   },
+
   glass: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   panelNumber: {
     color: '#174769',
     fontWeight: 'bold',
     fontSize: 13,
   },
+
   profileCard: {
     marginTop: 12,
     padding: 12,
@@ -597,49 +667,58 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FBFDFF',
   },
+
   profileTitle: {
     fontSize: 14,
     fontWeight: '800',
     color: '#173D59',
     marginBottom: 8,
   },
+
   profileImage: {
     width: '100%',
     height: 125,
     backgroundColor: '#F2F5F8',
     borderRadius: 8,
   },
+
   profileInfo: {
     marginTop: 10,
   },
+
   profileMeasure: {
     fontSize: 15,
     fontWeight: '800',
     color: '#164F77',
     marginBottom: 5,
   },
+
   profileQuantity: {
     fontSize: 13,
     fontWeight: '700',
     color: '#536B7C',
   },
+
   divider: {
     height: 1,
     backgroundColor: '#E4EAF0',
     marginVertical: 12,
   },
+
   total: {
     fontSize: 19,
     fontWeight: '900',
     color: '#13633C',
     marginTop: 13,
   },
+
   button: {
     backgroundColor: '#205E85',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
+
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '800',

@@ -6,6 +6,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   Pressable,
   StyleSheet,
   SafeAreaView,
@@ -13,6 +14,15 @@ import {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculate } from './src/calculations';
+
+// GitHub ana klasorune yuklenen profil fotograflari
+const kasaImage = require(
+  './katlanir-cam-aluminyum-duz-kasa-profil-30d010.png'
+);
+
+const camImage = require(
+  './katlanir-cam-aluminyum-baza-profili-fi-d-8261.png'
+);
 
 const initial = {
   customer: '',
@@ -30,6 +40,7 @@ const initial = {
 
 function format(value, digits = 2) {
   const n = Number(value);
+
   return (Number.isFinite(n) ? n : 0).toLocaleString('tr-TR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -59,7 +70,10 @@ function PanelDrawing({ calc }) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.section}>Cam Balkon Panel Çizimi</Text>
+      <Text style={styles.section}>
+        Cam Balkon Panel Çizimi
+      </Text>
+
       <Text style={styles.note}>
         Üst ve alt kasa tek parça, cam profilleri panel bazında
       </Text>
@@ -76,7 +90,8 @@ function PanelDrawing({ calc }) {
               style={[
                 styles.panel,
                 {
-                  borderRightWidth: index === count - 1 ? 0 : 1,
+                  borderRightWidth:
+                    index === count - 1 ? 0 : 1,
                 },
               ]}
             >
@@ -87,7 +102,9 @@ function PanelDrawing({ calc }) {
                   styles.glass,
                   {
                     backgroundColor:
-                      index % 2 === 0 ? '#D8EEF9' : '#C4E4F5',
+                      index % 2 === 0
+                        ? '#D8EEF9'
+                        : '#C4E4F5',
                   },
                 ]}
               >
@@ -111,37 +128,53 @@ function PanelDrawing({ calc }) {
       <Text style={styles.value}>
         Toplam genişlik: {format(calc.width, 0)} mm
       </Text>
+
       <Text style={styles.value}>
         Toplam yükseklik: {format(calc.height, 0)} mm
       </Text>
+
       <Text style={styles.value}>
         Panel adedi: {calc.panels}
       </Text>
+
       <Text style={styles.value}>
         Net cam: {format(calc.netWidth, 2)} ×{' '}
         {format(calc.netHeight, 1)} mm
       </Text>
+
       <Text style={styles.value}>
         Cam üst/alt profil kesimi:{' '}
         {format(calc.glassProfileLength, 2)} mm
       </Text>
 
       <Text style={styles.note}>
-        Çizim şematiktir; profil kesitlerinin birebir teknik
-        çizimi değildir.
+        Çizim şematiktir. Profil fotoğrafları aşağıdaki
+        kesim listesinde gösterilmektedir.
       </Text>
     </View>
   );
 }
 
-function CutRow({ name, length, qty }) {
+function ProfileCard({ title, source, length, quantity }) {
   return (
-    <View style={styles.cutRow}>
-      <Text style={styles.cutName}>{name}</Text>
-      <Text style={styles.cutLength}>
-        {format(length, 2)} mm
-      </Text>
-      <Text style={styles.cutQty}>{qty} adet</Text>
+    <View style={styles.profileCard}>
+      <Text style={styles.profileTitle}>{title}</Text>
+
+      <Image
+        source={source}
+        style={styles.profileImage}
+        resizeMode="contain"
+      />
+
+      <View style={styles.profileInfo}>
+        <Text style={styles.profileMeasure}>
+          Kesim ölçüsü: {format(length, 2)} mm
+        </Text>
+
+        <Text style={styles.profileQuantity}>
+          Adet: {quantity}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -153,39 +186,51 @@ function AluminumCutList({ calc }) {
         Alüminyum Profil Kesim Listesi
       </Text>
 
-      <Text style={styles.subheading}>Kasa Profilleri</Text>
+      <Text style={styles.subheading}>
+        Kasa Profilleri
+      </Text>
+
       <Text style={styles.note}>
         Kasa profilleri toplam genişlik ölçüsünde,
         düşümsüz ve tek parça kesilir.
       </Text>
 
-      <CutRow
-        name="Üst kasa"
+      <ProfileCard
+        title="Üst Kasa Profili"
+        source={kasaImage}
         length={calc.caseProfileLength}
-        qty={calc.upperCaseQty}
+        quantity={calc.upperCaseQty}
       />
-      <CutRow
-        name="Alt kasa"
+
+      <ProfileCard
+        title="Alt Kasa Profili"
+        source={kasaImage}
         length={calc.caseProfileLength}
-        qty={calc.lowerCaseQty}
+        quantity={calc.lowerCaseQty}
       />
 
       <View style={styles.divider} />
 
-      <Text style={styles.subheading}>Cam Profilleri</Text>
+      <Text style={styles.subheading}>
+        Cam Profilleri
+      </Text>
+
       <Text style={styles.note}>
         Her panel eninden otomatik 10 mm düşülür.
       </Text>
 
-      <CutRow
-        name="Cam üst profili"
+      <ProfileCard
+        title="Cam Üst Profili"
+        source={camImage}
         length={calc.glassProfileLength}
-        qty={calc.upperGlassQty}
+        quantity={calc.upperGlassQty}
       />
-      <CutRow
-        name="Cam alt profili"
+
+      <ProfileCard
+        title="Cam Alt Profili"
+        source={camImage}
         length={calc.glassProfileLength}
-        qty={calc.lowerGlassQty}
+        quantity={calc.lowerGlassQty}
       />
 
       <View style={styles.divider} />
@@ -195,6 +240,7 @@ function AluminumCutList({ calc }) {
           <Text style={styles.value}>
             Toplam parça: {calc.aluminumTotalPieces} adet
           </Text>
+
           <Text style={styles.total}>
             TOPLAM ALÜMİNYUM:{' '}
             {format(calc.aluminumTotalLength / 1000, 2)} metre
@@ -229,11 +275,13 @@ export default function App() {
             !Array.isArray(parsed)
           ) {
             const allowed = Object.keys(initial);
+
             const savedData = Object.fromEntries(
               Object.entries(parsed).filter(([key]) =>
                 allowed.includes(key)
               )
             );
+
             setData({ ...initial, ...savedData });
           }
         }
@@ -284,19 +332,28 @@ export default function App() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.brand}>CAM BALKON PRO</Text>
-        <Text style={styles.title}>Katlanır Cam Balkon</Text>
+
+        <Text style={styles.title}>
+          Katlanır Cam Balkon
+        </Text>
+
         <Text style={styles.subtitle}>
           Cam ve alüminyum otomatik kesim hesaplama
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.section}>Müşteri ve Proje</Text>
+          <Text style={styles.section}>
+            Müşteri ve Proje
+          </Text>
+
           {field('customer', 'Müşteri Adı', true)}
           {field('project', 'Proje / Uygulama Yeri', true)}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.section}>Ölçüler (mm)</Text>
+          <Text style={styles.section}>
+            Ölçüler (mm)
+          </Text>
 
           {field('width', 'Toplam Genişlik (mm)')}
           {field('height', 'Toplam Yükseklik (mm)')}
@@ -308,11 +365,14 @@ export default function App() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.section}>Cam Kesim Listesi</Text>
+          <Text style={styles.section}>
+            Cam Kesim Listesi
+          </Text>
 
           <Text style={styles.note}>
             Cam eni: (Genişlik - 25) / Panel adedi - 0,6 mm
           </Text>
+
           <Text style={styles.note}>
             Cam boyu: Yükseklik - 170 mm
           </Text>
@@ -323,6 +383,7 @@ export default function App() {
                 {format(calc.netWidth, 2)} ×{' '}
                 {format(calc.netHeight, 1)} mm
               </Text>
+
               <Text style={styles.value}>
                 Cam adedi: {calc.panels}
               </Text>
@@ -340,7 +401,9 @@ export default function App() {
         <AluminumCutList calc={calc} />
 
         <View style={styles.card}>
-          <Text style={styles.section}>Teklif Hesabı</Text>
+          <Text style={styles.section}>
+            Teklif Hesabı
+          </Text>
 
           <Text style={styles.value}>
             Toplam alan: {format(calc.area)} m²
@@ -358,15 +421,19 @@ export default function App() {
           <Text>
             Cam balkon: {format(calc.material)} TL
           </Text>
+
           <Text>
             İskonto: -{format(calc.discount)} TL
           </Text>
+
           <Text>
             Ara toplam: {format(calc.subtotal)} TL
           </Text>
+
           <Text>
             KDV: {format(calc.vat)} TL
           </Text>
+
           <Text style={styles.total}>
             GENEL TOPLAM: {format(calc.total)} TL
           </Text>
@@ -387,9 +454,10 @@ export default function App() {
         </Pressable>
 
         <Text style={styles.note}>
-          Profil ölçüleri girilen kurallara göre otomatik
-          hesaplanır. Gerçek imalat öncesinde ölçüleri
-          doğrulayın. Toplam uzunluk kesim firesi içermez.
+          Kesim ölçüleri belirlediğiniz kurallara göre
+          hesaplanır. Gerçek imalat öncesinde kontrol
+          edilmelidir. Toplam alüminyum uzunluğuna
+          kesim firesi dahil değildir.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -521,31 +589,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
   },
-  cutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5EBF0',
+  profileCard: {
+    marginTop: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#DDE6EE',
+    borderRadius: 12,
+    backgroundColor: '#FBFDFF',
   },
-  cutName: {
-    flex: 1.5,
-    color: '#294A61',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  cutLength: {
-    flex: 1.2,
-    textAlign: 'right',
-    color: '#164F77',
+  profileTitle: {
+    fontSize: 14,
     fontWeight: '800',
-    fontSize: 12,
+    color: '#173D59',
+    marginBottom: 8,
   },
-  cutQty: {
-    flex: 0.8,
-    textAlign: 'right',
-    color: '#294A61',
-    fontSize: 12,
+  profileImage: {
+    width: '100%',
+    height: 125,
+    backgroundColor: '#F2F5F8',
+    borderRadius: 8,
+  },
+  profileInfo: {
+    marginTop: 10,
+  },
+  profileMeasure: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#164F77',
+    marginBottom: 5,
+  },
+  profileQuantity: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#536B7C',
   },
   divider: {
     height: 1,

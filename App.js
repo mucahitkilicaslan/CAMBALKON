@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -37,25 +36,16 @@ const initial = {
 function format(value, digits = 2) {
   const n = Number(value);
 
-  return (Number.isFinite(n) ? n : 0).toLocaleString(
-    'tr-TR',
-    {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }
-  );
+  return (Number.isFinite(n) ? n : 0).toLocaleString('tr-TR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
 }
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  textMode = false,
-}) {
+function Field({ label, value, onChangeText, textMode = false }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-
       <TextInput
         style={styles.input}
         value={String(value ?? '')}
@@ -67,7 +57,6 @@ function Field({
   );
 }
 
-// SVG kullanmadan otomatik panel çizimi
 function PanelDrawing({ calc }) {
   const count = Math.max(
     1,
@@ -91,12 +80,9 @@ function PanelDrawing({ calc }) {
             style={[
               styles.glassPanel,
               {
-                borderRightWidth:
-                  index === count - 1 ? 0 : 1,
+                borderRightWidth: index === count - 1 ? 0 : 1,
                 backgroundColor:
-                  index % 2 === 0
-                    ? '#D8EEF9'
-                    : '#C4E4F5',
+                  index % 2 === 0 ? '#D8EEF9' : '#C4E4F5',
               },
             ]}
           >
@@ -104,9 +90,7 @@ function PanelDrawing({ calc }) {
               <Text
                 style={[
                   styles.panelNumber,
-                  {
-                    fontSize: count > 8 ? 10 : 15,
-                  },
+                  { fontSize: count > 8 ? 10 : 15 },
                 ]}
               >
                 {index + 1}
@@ -138,7 +122,7 @@ function PanelDrawing({ calc }) {
       </Text>
 
       <Text style={styles.note}>
-        Çizim şematiktir. Gerçek imalat öncesinde
+        Bu çizim şematiktir. Gerçek imalat öncesinde
         kullanılan sistemin teknik kesim paylarını
         doğrulayın.
       </Text>
@@ -165,10 +149,7 @@ export default function App() {
             typeof parsed === 'object' &&
             !Array.isArray(parsed)
           ) {
-            setData({
-              ...initial,
-              ...parsed,
-            });
+            setData({ ...initial, ...parsed });
           }
         }
       } catch (error) {
@@ -199,10 +180,7 @@ export default function App() {
     }));
   };
 
-  const calc = useMemo(
-    () => calculate(data),
-    [data]
-  );
+  const calc = useMemo(() => calculate(data), [data]);
 
   const field = (key, label, textMode = false) => (
     <Field
@@ -220,9 +198,7 @@ export default function App() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.brand}>
-          CAM BALKON PRO
-        </Text>
+        <Text style={styles.brand}>CAM BALKON PRO</Text>
 
         <Text style={styles.title}>
           Katlanır Cam Balkon
@@ -261,17 +237,13 @@ export default function App() {
             Manuel Cam Kesim Payları (mm)
           </Text>
 
-          <Text style={styles.subheading}>
-            En payları
-          </Text>
+          <Text style={styles.subheading}>En payları</Text>
 
           {field('profileW', 'Profil - En')}
           {field('sealW', 'Fitil - En')}
           {field('gapW', 'Boşluk - En')}
 
-          <Text style={styles.subheading}>
-            Boy payları
-          </Text>
+          <Text style={styles.subheading}>Boy payları</Text>
 
           {field('profileH', 'Profil - Boy')}
           {field('sealH', 'Fitil - Boy')}
@@ -302,13 +274,11 @@ export default function App() {
           </Text>
 
           <Text style={styles.value}>
-            Panel genişliği:{' '}
-            {format(calc.panelWidth, 1)} mm
+            Panel genişliği: {format(calc.panelWidth, 1)} mm
           </Text>
 
           <Text style={styles.value}>
-            Panel yüksekliği:{' '}
-            {format(calc.height, 1)} mm
+            Panel yüksekliği: {format(calc.height, 1)} mm
           </Text>
         </View>
 

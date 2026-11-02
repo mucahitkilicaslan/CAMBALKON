@@ -30,7 +30,6 @@ const initial = {
 
 function format(value, digits = 2) {
   const n = Number(value);
-
   return (Number.isFinite(n) ? n : 0).toLocaleString('tr-TR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -60,66 +59,152 @@ function PanelDrawing({ calc }) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.section}>
-        Cam Balkon Panel Çizimi
-      </Text>
-
+      <Text style={styles.section}>Cam Balkon Panel Çizimi</Text>
       <Text style={styles.note}>
-        Önden görünüş - şematik çizim
+        Üst ve alt kasa tek parça, cam profilleri panel bazında
       </Text>
 
       <View style={styles.drawing}>
-        {Array.from({ length: count }, (_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.glassPanel,
-              {
-                borderRightWidth: index === count - 1 ? 0 : 1,
-                backgroundColor:
-                  index % 2 === 0 ? '#D8EEF9' : '#C4E4F5',
-              },
-            ]}
-          >
-            {count <= 12 && (
-              <Text
+        <View style={styles.caseProfile}>
+          <Text style={styles.caseText}>ÜST KASA</Text>
+        </View>
+
+        <View style={styles.panelRow}>
+          {Array.from({ length: count }, (_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.panel,
+                {
+                  borderRightWidth: index === count - 1 ? 0 : 1,
+                },
+              ]}
+            >
+              <View style={styles.glassProfile} />
+
+              <View
                 style={[
-                  styles.panelNumber,
-                  { fontSize: count > 8 ? 10 : 15 },
+                  styles.glass,
+                  {
+                    backgroundColor:
+                      index % 2 === 0 ? '#D8EEF9' : '#C4E4F5',
+                  },
                 ]}
               >
-                {index + 1}
-              </Text>
-            )}
-          </View>
-        ))}
+                {count <= 12 && (
+                  <Text style={styles.panelNumber}>
+                    {index + 1}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.glassProfile} />
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.caseProfile}>
+          <Text style={styles.caseText}>ALT KASA</Text>
+        </View>
       </View>
 
       <Text style={styles.value}>
         Toplam genişlik: {format(calc.width, 0)} mm
       </Text>
-
       <Text style={styles.value}>
         Toplam yükseklik: {format(calc.height, 0)} mm
       </Text>
-
       <Text style={styles.value}>
-        Panel adedi: {count}
+        Panel adedi: {calc.panels}
       </Text>
-
       <Text style={styles.value}>
-        Panel eni: {format(calc.panelWidth, 2)} mm
-      </Text>
-
-      <Text style={styles.value}>
-        Net cam kesimi: {format(calc.netWidth, 2)} ×{' '}
+        Net cam: {format(calc.netWidth, 2)} ×{' '}
         {format(calc.netHeight, 1)} mm
+      </Text>
+      <Text style={styles.value}>
+        Cam üst/alt profil kesimi:{' '}
+        {format(calc.glassProfileLength, 2)} mm
       </Text>
 
       <Text style={styles.note}>
-        Bu çizim şematiktir. Gerçek imalat öncesinde
-        kullanılan sistemin teknik ölçülerini doğrulayın.
+        Çizim şematiktir; profil kesitlerinin birebir teknik
+        çizimi değildir.
       </Text>
+    </View>
+  );
+}
+
+function CutRow({ name, length, qty }) {
+  return (
+    <View style={styles.cutRow}>
+      <Text style={styles.cutName}>{name}</Text>
+      <Text style={styles.cutLength}>
+        {format(length, 2)} mm
+      </Text>
+      <Text style={styles.cutQty}>{qty} adet</Text>
+    </View>
+  );
+}
+
+function AluminumCutList({ calc }) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.section}>
+        Alüminyum Profil Kesim Listesi
+      </Text>
+
+      <Text style={styles.subheading}>Kasa Profilleri</Text>
+      <Text style={styles.note}>
+        Kasa profilleri toplam genişlik ölçüsünde,
+        düşümsüz ve tek parça kesilir.
+      </Text>
+
+      <CutRow
+        name="Üst kasa"
+        length={calc.caseProfileLength}
+        qty={calc.upperCaseQty}
+      />
+      <CutRow
+        name="Alt kasa"
+        length={calc.caseProfileLength}
+        qty={calc.lowerCaseQty}
+      />
+
+      <View style={styles.divider} />
+
+      <Text style={styles.subheading}>Cam Profilleri</Text>
+      <Text style={styles.note}>
+        Her panel eninden otomatik 10 mm düşülür.
+      </Text>
+
+      <CutRow
+        name="Cam üst profili"
+        length={calc.glassProfileLength}
+        qty={calc.upperGlassQty}
+      />
+      <CutRow
+        name="Cam alt profili"
+        length={calc.glassProfileLength}
+        qty={calc.lowerGlassQty}
+      />
+
+      <View style={styles.divider} />
+
+      {calc.valid ? (
+        <>
+          <Text style={styles.value}>
+            Toplam parça: {calc.aluminumTotalPieces} adet
+          </Text>
+          <Text style={styles.total}>
+            TOPLAM ALÜMİNYUM:{' '}
+            {format(calc.aluminumTotalLength / 1000, 2)} metre
+          </Text>
+        </>
+      ) : (
+        <Text style={styles.error}>
+          Geçerli ölçüler girildiğinde kesim listesi hesaplanır.
+        </Text>
+      )}
     </View>
   );
 }
@@ -143,16 +228,12 @@ export default function App() {
             typeof parsed === 'object' &&
             !Array.isArray(parsed)
           ) {
-            const {
-              profileW,
-              sealW,
-              gapW,
-              profileH,
-              sealH,
-              gapH,
-              ...savedData
-            } = parsed;
-
+            const allowed = Object.keys(initial);
+            const savedData = Object.fromEntries(
+              Object.entries(parsed).filter(([key]) =>
+                allowed.includes(key)
+              )
+            );
             setData({ ...initial, ...savedData });
           }
         }
@@ -203,125 +284,63 @@ export default function App() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.brand}>CAM BALKON PRO</Text>
-
-        <Text style={styles.title}>
-          Katlanır Cam Balkon
-        </Text>
-
+        <Text style={styles.title}>Katlanır Cam Balkon</Text>
         <Text style={styles.subtitle}>
-          Otomatik cam kesim ölçüleri ve fiyat teklifi
+          Cam ve alüminyum otomatik kesim hesaplama
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.section}>
-            Müşteri ve Proje
-          </Text>
-
+          <Text style={styles.section}>Müşteri ve Proje</Text>
           {field('customer', 'Müşteri Adı', true)}
           {field('project', 'Proje / Uygulama Yeri', true)}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.section}>
-            Ölçüler (mm)
-          </Text>
+          <Text style={styles.section}>Ölçüler (mm)</Text>
 
           {field('width', 'Toplam Genişlik (mm)')}
           {field('height', 'Toplam Yükseklik (mm)')}
           {field('panels', 'Panel Adedi')}
 
           <Text style={styles.value}>
-            Kullanılabilir genişlik:{' '}
-            {format(calc.usableWidth, 1)} mm
-          </Text>
-
-          <Text style={styles.value}>
             Panel eni: {format(calc.panelWidth, 2)} mm
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.section}>
-            Otomatik Cam Kesim Ölçüleri
-          </Text>
-
-          <Text style={styles.subheading}>
-            Cam eni hesabı
-          </Text>
+          <Text style={styles.section}>Cam Kesim Listesi</Text>
 
           <Text style={styles.note}>
-            Toplam genişlikten 25 mm düşülür.
-            Kalan ölçü panel adedine bölünür.
-            Her panel eninden 0,6 mm düşülür.
+            Cam eni: (Genişlik - 25) / Panel adedi - 0,6 mm
           </Text>
-
-          <Text style={styles.value}>
-            Net cam eni: {format(calc.netWidth, 2)} mm
-          </Text>
-
-          <View style={styles.divider} />
-
-          <Text style={styles.subheading}>
-            Cam boyu hesabı
-          </Text>
-
           <Text style={styles.note}>
-            Toplam yükseklikten otomatik 170 mm
-            (17 cm) düşülür.
+            Cam boyu: Yükseklik - 170 mm
           </Text>
-
-          <Text style={styles.value}>
-            Net cam boyu: {format(calc.netHeight, 1)} mm
-          </Text>
-
-          <View style={styles.divider} />
 
           {calc.valid ? (
-            <Text style={styles.total}>
-              NET CAM KESİMİ:{' '}
-              {format(calc.netWidth, 2)} ×{' '}
-              {format(calc.netHeight, 1)} mm
-            </Text>
+            <>
+              <Text style={styles.total}>
+                {format(calc.netWidth, 2)} ×{' '}
+                {format(calc.netHeight, 1)} mm
+              </Text>
+              <Text style={styles.value}>
+                Cam adedi: {calc.panels}
+              </Text>
+            </>
           ) : (
             <Text style={styles.error}>
-              Ölçüler geçersiz. Toplam genişlik,
-              yükseklik ve panel adedini kontrol edin.
+              Ölçüler geçersiz. Genişlik, yükseklik
+              ve panel adedini kontrol edin.
             </Text>
           )}
         </View>
 
         <PanelDrawing calc={calc} />
 
-        <View style={styles.card}>
-          <Text style={styles.section}>
-            Panel Bilgileri
-          </Text>
-
-          <Text style={styles.value}>
-            Panel adedi: {calc.panels}
-          </Text>
-
-          <Text style={styles.value}>
-            Panel eni: {format(calc.panelWidth, 2)} mm
-          </Text>
-
-          <Text style={styles.value}>
-            Panel yüksekliği: {format(calc.height, 1)} mm
-          </Text>
-
-          <Text style={styles.value}>
-            Net cam eni: {format(calc.netWidth, 2)} mm
-          </Text>
-
-          <Text style={styles.value}>
-            Net cam boyu: {format(calc.netHeight, 1)} mm
-          </Text>
-        </View>
+        <AluminumCutList calc={calc} />
 
         <View style={styles.card}>
-          <Text style={styles.section}>
-            Teklif Hesabı
-          </Text>
+          <Text style={styles.section}>Teklif Hesabı</Text>
 
           <Text style={styles.value}>
             Toplam alan: {format(calc.area)} m²
@@ -339,19 +358,15 @@ export default function App() {
           <Text>
             Cam balkon: {format(calc.material)} TL
           </Text>
-
           <Text>
             İskonto: -{format(calc.discount)} TL
           </Text>
-
           <Text>
             Ara toplam: {format(calc.subtotal)} TL
           </Text>
-
           <Text>
             KDV: {format(calc.vat)} TL
           </Text>
-
           <Text style={styles.total}>
             GENEL TOPLAM: {format(calc.total)} TL
           </Text>
@@ -372,9 +387,9 @@ export default function App() {
         </Pressable>
 
         <Text style={styles.note}>
-          Cam eni ve cam boyu otomatik hesaplanır.
-          İmalat öncesinde teknik kesim paylarını
-          ve ölçüleri doğrulayın.
+          Profil ölçüleri girilen kurallara göre otomatik
+          hesaplanır. Gerçek imalat öncesinde ölçüleri
+          doğrulayın. Toplam uzunluk kesim firesi içermez.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -386,32 +401,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F6FA',
   },
-
   content: {
     padding: 18,
     paddingBottom: 55,
   },
-
   brand: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 2,
     color: '#326D96',
   },
-
   title: {
     fontSize: 27,
     fontWeight: '800',
     color: '#14354D',
     marginTop: 5,
   },
-
   subtitle: {
     fontSize: 13,
     color: '#62788B',
     marginBottom: 16,
   },
-
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -420,25 +430,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E8EF',
   },
-
   section: {
     fontSize: 17,
     fontWeight: '800',
     color: '#173D59',
     marginBottom: 12,
   },
-
   field: {
     marginBottom: 10,
   },
-
   label: {
     fontSize: 12,
     fontWeight: '700',
     color: '#536B7C',
     marginBottom: 5,
   },
-
   input: {
     borderWidth: 1,
     borderColor: '#CCD9E4',
@@ -449,81 +455,118 @@ const styles = StyleSheet.create({
     color: '#12344D',
     backgroundColor: '#FBFDFF',
   },
-
   subheading: {
     fontWeight: '700',
     color: '#35566C',
-    marginBottom: 7,
+    marginBottom: 9,
+    marginTop: 5,
+    fontSize: 15,
   },
-
   value: {
     fontWeight: '800',
     color: '#164F77',
     fontSize: 15,
     marginVertical: 8,
   },
-
   note: {
     color: '#697C8A',
     fontSize: 11,
     lineHeight: 18,
-    marginTop: 10,
+    marginTop: 8,
+    marginBottom: 5,
   },
-
   error: {
     color: '#C0392B',
     fontWeight: '700',
     marginTop: 8,
   },
-
   drawing: {
-    flexDirection: 'row',
-    height: 170,
+    borderWidth: 2,
+    borderColor: '#34566B',
     marginTop: 15,
     marginBottom: 12,
-    borderWidth: 3,
-    borderColor: '#34566B',
-    backgroundColor: '#E8F5FC',
     overflow: 'hidden',
   },
-
-  glassPanel: {
-    flex: 1,
-    minWidth: 0,
-    borderRightColor: '#34566B',
+  caseProfile: {
+    height: 22,
+    backgroundColor: '#738A9B',
     justifyContent: 'center',
     alignItems: 'center',
   },
-
+  caseText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  panelRow: {
+    flexDirection: 'row',
+    height: 170,
+  },
+  panel: {
+    flex: 1,
+    minWidth: 0,
+    borderRightColor: '#34566B',
+  },
+  glassProfile: {
+    height: 9,
+    backgroundColor: '#A4B5C0',
+  },
+  glass: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   panelNumber: {
     color: '#174769',
     fontWeight: 'bold',
+    fontSize: 13,
   },
-
+  cutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5EBF0',
+  },
+  cutName: {
+    flex: 1.5,
+    color: '#294A61',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  cutLength: {
+    flex: 1.2,
+    textAlign: 'right',
+    color: '#164F77',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  cutQty: {
+    flex: 0.8,
+    textAlign: 'right',
+    color: '#294A61',
+    fontSize: 12,
+  },
   divider: {
     height: 1,
     backgroundColor: '#E4EAF0',
     marginVertical: 12,
   },
-
   total: {
     fontSize: 19,
     fontWeight: '900',
     color: '#13633C',
     marginTop: 13,
   },
-
   button: {
     backgroundColor: '#205E85',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15,
   },
 });
-

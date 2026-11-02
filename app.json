@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Cam Balkon Pro",
+    "slug": "cam-balkon-pro",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "package": "com.cambalkonpro.teklif",
+      "versionCode": 1
+    }
+  }
+}

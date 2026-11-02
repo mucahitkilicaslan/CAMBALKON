@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -19,9 +20,6 @@ const initial = {
   width: '1000',
   height: '1650',
   panels: '4',
-  profileW: '0',
-  sealW: '0',
-  gapW: '0',
   profileH: '0',
   sealH: '0',
   gapH: '0',
@@ -105,7 +103,7 @@ function PanelDrawing({ calc }) {
       </Text>
 
       <Text style={styles.value}>
-        Yükseklik: {format(calc.height, 0)} mm
+        Otomatik genişlik düşümü: 25 mm
       </Text>
 
       <Text style={styles.value}>
@@ -113,18 +111,21 @@ function PanelDrawing({ calc }) {
       </Text>
 
       <Text style={styles.value}>
-        Brüt panel eni: {format(calc.panelWidth, 1)} mm
+        Panel eni: {format(calc.panelWidth, 2)} mm
       </Text>
 
       <Text style={styles.value}>
-        Net cam kesimi: {format(calc.netWidth, 1)} ×{' '}
+        Panel başına cam düşümü: 0,6 mm
+      </Text>
+
+      <Text style={styles.value}>
+        Net cam kesimi: {format(calc.netWidth, 2)} ×{' '}
         {format(calc.netHeight, 1)} mm
       </Text>
 
       <Text style={styles.note}>
-        Bu çizim şematiktir. Gerçek imalat öncesinde
-        kullanılan sistemin teknik kesim paylarını
-        doğrulayın.
+        Çizim şematiktir. Gerçek imalat öncesinde
+        kullanılan sistemin teknik ölçülerini doğrulayın.
       </Text>
     </View>
   );
@@ -149,7 +150,14 @@ export default function App() {
             typeof parsed === 'object' &&
             !Array.isArray(parsed)
           ) {
-            setData({ ...initial, ...parsed });
+            const {
+              profileW,
+              sealW,
+              gapW,
+              ...savedData
+            } = parsed;
+
+            setData({ ...initial, ...savedData });
           }
         }
       } catch (error) {
@@ -205,7 +213,7 @@ export default function App() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Cam kesim ölçüleri ve fiyat teklifi
+          Otomatik cam eni ve teklif hesaplama
         </Text>
 
         <View style={styles.card}>
@@ -227,37 +235,57 @@ export default function App() {
           {field('panels', 'Panel Adedi')}
 
           <Text style={styles.value}>
-            Brüt panel: {format(calc.panelWidth, 1)} ×{' '}
-            {format(calc.height, 1)} mm
+            Kullanılabilir genişlik:{' '}
+            {format(calc.usableWidth, 1)} mm
+          </Text>
+
+          <Text style={styles.value}>
+            Panel eni: {format(calc.panelWidth, 2)} mm
           </Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.section}>
-            Manuel Cam Kesim Payları (mm)
+            Cam Kesim Ölçüleri (mm)
           </Text>
 
-          <Text style={styles.subheading}>En payları</Text>
+          <Text style={styles.subheading}>
+            Otomatik cam eni hesabı
+          </Text>
 
-          {field('profileW', 'Profil - En')}
-          {field('sealW', 'Fitil - En')}
-          {field('gapW', 'Boşluk - En')}
+          <Text style={styles.note}>
+            Toplam genişlikten 25 mm düşülür.
+            Kalan ölçü panel adedine bölünür.
+            Her panelin eninden 0,6 mm düşülür.
+          </Text>
 
-          <Text style={styles.subheading}>Boy payları</Text>
+          <Text style={styles.value}>
+            Net cam eni: {format(calc.netWidth, 2)} mm
+          </Text>
+
+          <Text style={styles.subheading}>
+            Manuel cam boyu kesim payları
+          </Text>
 
           {field('profileH', 'Profil - Boy')}
           {field('sealH', 'Fitil - Boy')}
           {field('gapH', 'Boşluk - Boy')}
 
           <Text style={styles.value}>
-            Net cam kesimi: {format(calc.netWidth, 1)} ×{' '}
+            Net cam boyu: {format(calc.netHeight, 1)} mm
+          </Text>
+
+          <View style={styles.divider} />
+
+          <Text style={styles.total}>
+            Net cam kesimi: {format(calc.netWidth, 2)} ×{' '}
             {format(calc.netHeight, 1)} mm
           </Text>
 
           {!calc.valid && (
             <Text style={styles.error}>
-              Ölçüler geçersiz. Panel adedini ve
-              kesim paylarını kontrol edin.
+              Ölçüler geçersiz. Genişlik, panel adedi
+              ve boy kesim paylarını kontrol edin.
             </Text>
           )}
         </View>
@@ -274,7 +302,7 @@ export default function App() {
           </Text>
 
           <Text style={styles.value}>
-            Panel genişliği: {format(calc.panelWidth, 1)} mm
+            Panel eni: {format(calc.panelWidth, 2)} mm
           </Text>
 
           <Text style={styles.value}>
@@ -336,10 +364,9 @@ export default function App() {
         </Pressable>
 
         <Text style={styles.note}>
-          Hesaplama eşit panel genişliği ve manuel
-          kesim payları esas alınarak yapılır.
-          Gerçek imalat öncesinde profil sisteminin
-          teknik ölçülerini kontrol edin.
+          Cam eni otomatik hesaplanır. Cam boyu için
+          manuel kesim payları kullanılır. İmalat öncesinde
+          teknik ölçüleri doğrulayın.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -351,32 +378,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F6FA',
   },
-
   content: {
     padding: 18,
     paddingBottom: 55,
   },
-
   brand: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 2,
     color: '#326D96',
   },
-
   title: {
     fontSize: 27,
     fontWeight: '800',
     color: '#14354D',
     marginTop: 5,
   },
-
   subtitle: {
     fontSize: 13,
     color: '#62788B',
     marginBottom: 16,
   },
-
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -385,25 +407,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E8EF',
   },
-
   section: {
     fontSize: 17,
     fontWeight: '800',
     color: '#173D59',
     marginBottom: 12,
   },
-
   field: {
     marginBottom: 10,
   },
-
   label: {
     fontSize: 12,
     fontWeight: '700',
     color: '#536B7C',
     marginBottom: 5,
   },
-
   input: {
     borderWidth: 1,
     borderColor: '#CCD9E4',
@@ -414,33 +432,28 @@ const styles = StyleSheet.create({
     color: '#12344D',
     backgroundColor: '#FBFDFF',
   },
-
   subheading: {
     fontWeight: '700',
     color: '#35566C',
     marginBottom: 7,
   },
-
   value: {
     fontWeight: '800',
     color: '#164F77',
     fontSize: 15,
     marginVertical: 8,
   },
-
   note: {
     color: '#697C8A',
     fontSize: 11,
     lineHeight: 18,
     marginTop: 10,
   },
-
   error: {
     color: '#C0392B',
     fontWeight: '700',
     marginTop: 8,
   },
-
   drawing: {
     flexDirection: 'row',
     height: 170,
@@ -451,7 +464,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F5FC',
     overflow: 'hidden',
   },
-
   glassPanel: {
     flex: 1,
     minWidth: 0,
@@ -459,32 +471,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   panelNumber: {
     color: '#174769',
     fontWeight: 'bold',
   },
-
   divider: {
     height: 1,
     backgroundColor: '#E4EAF0',
     marginVertical: 12,
   },
-
   total: {
     fontSize: 19,
     fontWeight: '900',
     color: '#13633C',
     marginTop: 13,
   },
-
   button: {
     backgroundColor: '#205E85',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '800',

@@ -36,16 +36,26 @@ const initial = {
 
 function format(value, digits = 2) {
   const n = Number(value);
-  return (Number.isFinite(n) ? n : 0).toLocaleString('tr-TR', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
+
+  return (Number.isFinite(n) ? n : 0).toLocaleString(
+    'tr-TR',
+    {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }
+  );
 }
 
-function Field({ label, value, onChangeText, textMode = false }) {
+function Field({
+  label,
+  value,
+  onChangeText,
+  textMode = false,
+}) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
+
       <TextInput
         style={styles.input}
         value={String(value ?? '')}
@@ -57,6 +67,85 @@ function Field({ label, value, onChangeText, textMode = false }) {
   );
 }
 
+// SVG kullanmadan otomatik panel çizimi
+function PanelDrawing({ calc }) {
+  const count = Math.max(
+    1,
+    Math.min(100, Math.floor(Number(calc.panels) || 1))
+  );
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.section}>
+        Cam Balkon Panel Çizimi
+      </Text>
+
+      <Text style={styles.note}>
+        Önden görünüş - şematik çizim
+      </Text>
+
+      <View style={styles.drawing}>
+        {Array.from({ length: count }, (_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.glassPanel,
+              {
+                borderRightWidth:
+                  index === count - 1 ? 0 : 1,
+                backgroundColor:
+                  index % 2 === 0
+                    ? '#D8EEF9'
+                    : '#C4E4F5',
+              },
+            ]}
+          >
+            {count <= 12 && (
+              <Text
+                style={[
+                  styles.panelNumber,
+                  {
+                    fontSize: count > 8 ? 10 : 15,
+                  },
+                ]}
+              >
+                {index + 1}
+              </Text>
+            )}
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.value}>
+        Toplam genişlik: {format(calc.width, 0)} mm
+      </Text>
+
+      <Text style={styles.value}>
+        Yükseklik: {format(calc.height, 0)} mm
+      </Text>
+
+      <Text style={styles.value}>
+        Panel adedi: {count}
+      </Text>
+
+      <Text style={styles.value}>
+        Brüt panel eni: {format(calc.panelWidth, 1)} mm
+      </Text>
+
+      <Text style={styles.value}>
+        Net cam kesimi: {format(calc.netWidth, 1)} ×{' '}
+        {format(calc.netHeight, 1)} mm
+      </Text>
+
+      <Text style={styles.note}>
+        Çizim şematiktir. Gerçek imalat öncesinde
+        kullanılan sistemin teknik kesim paylarını
+        doğrulayın.
+      </Text>
+    </View>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(initial);
   const [loaded, setLoaded] = useState(false);
@@ -64,11 +153,22 @@ export default function App() {
   useEffect(() => {
     async function loadDraft() {
       try {
-        const saved = await AsyncStorage.getItem('camBalkonProDraft');
+        const saved = await AsyncStorage.getItem(
+          'camBalkonProDraft'
+        );
+
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            setData({ ...initial, ...parsed });
+
+          if (
+            parsed &&
+            typeof parsed === 'object' &&
+            !Array.isArray(parsed)
+          ) {
+            setData({
+              ...initial,
+              ...parsed,
+            });
           }
         }
       } catch (error) {
@@ -99,7 +199,10 @@ export default function App() {
     }));
   };
 
-  const calc = useMemo(() => calculate(data), [data]);
+  const calc = useMemo(
+    () => calculate(data),
+    [data]
+  );
 
   const field = (key, label, textMode = false) => (
     <Field
@@ -117,20 +220,31 @@ export default function App() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.brand}>CAM BALKON PRO</Text>
-        <Text style={styles.title}>Katlanır Cam Balkon</Text>
+        <Text style={styles.brand}>
+          CAM BALKON PRO
+        </Text>
+
+        <Text style={styles.title}>
+          Katlanır Cam Balkon
+        </Text>
+
         <Text style={styles.subtitle}>
           Cam kesim ölçüleri ve fiyat teklifi
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.section}>Müşteri ve Proje</Text>
+          <Text style={styles.section}>
+            Müşteri ve Proje
+          </Text>
+
           {field('customer', 'Müşteri Adı', true)}
           {field('project', 'Proje / Uygulama Yeri', true)}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.section}>Ölçüler (mm)</Text>
+          <Text style={styles.section}>
+            Ölçüler (mm)
+          </Text>
 
           {field('width', 'Toplam Genişlik (mm)')}
           {field('height', 'Yükseklik (mm)')}
@@ -147,12 +261,18 @@ export default function App() {
             Manuel Cam Kesim Payları (mm)
           </Text>
 
-          <Text style={styles.subheading}>En payları</Text>
+          <Text style={styles.subheading}>
+            En payları
+          </Text>
+
           {field('profileW', 'Profil - En')}
           {field('sealW', 'Fitil - En')}
           {field('gapW', 'Boşluk - En')}
 
-          <Text style={styles.subheading}>Boy payları</Text>
+          <Text style={styles.subheading}>
+            Boy payları
+          </Text>
+
           {field('profileH', 'Profil - Boy')}
           {field('sealH', 'Fitil - Boy')}
           {field('gapH', 'Boşluk - Boy')}
@@ -164,35 +284,38 @@ export default function App() {
 
           {!calc.valid && (
             <Text style={styles.error}>
-              Ölçüler geçersiz. Panel adedini ve kesim
-              paylarını kontrol edin.
+              Ölçüler geçersiz. Panel adedini ve
+              kesim paylarını kontrol edin.
             </Text>
           )}
         </View>
 
+        <PanelDrawing calc={calc} />
+
         <View style={styles.card}>
-          <Text style={styles.section}>Panel Bilgileri</Text>
+          <Text style={styles.section}>
+            Panel Bilgileri
+          </Text>
 
           <Text style={styles.value}>
             Panel adedi: {calc.panels}
           </Text>
 
           <Text style={styles.value}>
-            Panel genişliği: {format(calc.panelWidth, 1)} mm
+            Panel genişliği:{' '}
+            {format(calc.panelWidth, 1)} mm
           </Text>
 
           <Text style={styles.value}>
-            Panel yüksekliği: {format(calc.height, 1)} mm
-          </Text>
-
-          <Text style={styles.note}>
-            SVG panel çizimi, açılış hatasını test etmek
-            amacıyla geçici olarak kapatılmıştır.
+            Panel yüksekliği:{' '}
+            {format(calc.height, 1)} mm
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.section}>Teklif Hesabı</Text>
+          <Text style={styles.section}>
+            Teklif Hesabı
+          </Text>
 
           <Text style={styles.value}>
             Toplam alan: {format(calc.area)} m²
@@ -243,10 +366,10 @@ export default function App() {
         </Pressable>
 
         <Text style={styles.note}>
-          Hesaplama eşit panel genişliği ve manuel kesim
-          payları esas alınarak yapılır. Gerçek imalat
-          öncesinde profil sisteminin teknik ölçülerini
-          kontrol edin.
+          Hesaplama eşit panel genişliği ve manuel
+          kesim payları esas alınarak yapılır.
+          Gerçek imalat öncesinde profil sisteminin
+          teknik ölçülerini kontrol edin.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -258,27 +381,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F6FA',
   },
+
   content: {
     padding: 18,
     paddingBottom: 55,
   },
+
   brand: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 2,
     color: '#326D96',
   },
+
   title: {
     fontSize: 27,
     fontWeight: '800',
     color: '#14354D',
     marginTop: 5,
   },
+
   subtitle: {
     fontSize: 13,
     color: '#62788B',
     marginBottom: 16,
   },
+
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -287,21 +415,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E8EF',
   },
+
   section: {
     fontSize: 17,
     fontWeight: '800',
     color: '#173D59',
     marginBottom: 12,
   },
+
   field: {
     marginBottom: 10,
   },
+
   label: {
     fontSize: 12,
     fontWeight: '700',
     color: '#536B7C',
     marginBottom: 5,
   },
+
   input: {
     borderWidth: 1,
     borderColor: '#CCD9E4',
@@ -312,45 +444,77 @@ const styles = StyleSheet.create({
     color: '#12344D',
     backgroundColor: '#FBFDFF',
   },
+
   subheading: {
     fontWeight: '700',
     color: '#35566C',
     marginBottom: 7,
   },
+
   value: {
     fontWeight: '800',
     color: '#164F77',
     fontSize: 15,
     marginVertical: 8,
   },
+
   note: {
     color: '#697C8A',
     fontSize: 11,
     lineHeight: 18,
     marginTop: 10,
   },
+
   error: {
     color: '#C0392B',
     fontWeight: '700',
     marginTop: 8,
   },
+
+  drawing: {
+    flexDirection: 'row',
+    height: 170,
+    marginTop: 15,
+    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: '#34566B',
+    backgroundColor: '#E8F5FC',
+    overflow: 'hidden',
+  },
+
+  glassPanel: {
+    flex: 1,
+    minWidth: 0,
+    borderRightColor: '#34566B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  panelNumber: {
+    color: '#174769',
+    fontWeight: 'bold',
+  },
+
   divider: {
     height: 1,
     backgroundColor: '#E4EAF0',
     marginVertical: 12,
   },
+
   total: {
     fontSize: 19,
     fontWeight: '900',
     color: '#13633C',
     marginTop: 13,
   },
+
   button: {
     backgroundColor: '#205E85',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
+
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '800',

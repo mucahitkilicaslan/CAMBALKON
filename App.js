@@ -1,12 +1,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
+
 import {
   Alert,
   ScrollView,
   View,
   Text,
   TextInput,
-  Image,
   Pressable,
   StyleSheet,
   SafeAreaView,
@@ -14,15 +14,6 @@ import {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculate } from './src/calculations';
-
-// GitHub ana klasöründeki gerçek profil fotoğrafları
-const kasaImage = require(
-  './katlanir-cam-aluminyum-duz-kasa-profil-30d010.png'
-);
-
-const camImage = require(
-  './katlanir-cam-aluminyum-baza-profili-fi-d-8261.png'
-);
 
 const initial = {
   customer: '',
@@ -51,6 +42,7 @@ function Field({ label, value, onChangeText, textMode = false }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
+
       <TextInput
         style={styles.input}
         value={String(value ?? '')}
@@ -58,232 +50,6 @@ function Field({ label, value, onChangeText, textMode = false }) {
         keyboardType={textMode ? 'default' : 'decimal-pad'}
         placeholder={textMode ? 'Bilgi giriniz' : '0'}
       />
-    </View>
-  );
-}
-
-function PanelDrawing({ calc }) {
-  const count = Math.max(
-    1,
-    Math.min(100, Math.floor(Number(calc.panels) || 1))
-  );
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.section}>
-        Cam Balkon Panel Çizimi
-      </Text>
-
-      <Text style={styles.note}>
-        Üst ve alt kasa aynı gerçek profil fotoğrafıyla gösterilir.
-        Cam profilleri her panelde ayrı bulunur.
-      </Text>
-
-      <View style={styles.drawing}>
-        <View style={styles.caseProfile}>
-          <Image
-            source={kasaImage}
-            style={styles.casePhoto}
-            resizeMode="stretch"
-          />
-          <Text style={styles.caseLabel}>
-            ÜST KASA
-          </Text>
-        </View>
-
-        <View style={styles.panelRow}>
-          {Array.from({ length: count }, (_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.panel,
-                {
-                  borderRightWidth:
-                    index === count - 1 ? 0 : 1,
-                },
-              ]}
-            >
-              <Image
-                source={camImage}
-                style={styles.glassProfile}
-                resizeMode="stretch"
-              />
-
-              <View
-                style={[
-                  styles.glass,
-                  {
-                    backgroundColor:
-                      index % 2 === 0
-                        ? '#D8EEF9'
-                        : '#C4E4F5',
-                  },
-                ]}
-              >
-                {count <= 12 && (
-                  <Text
-                    style={[
-                      styles.panelNumber,
-                      {
-                        fontSize: count > 8 ? 10 : 13,
-                      },
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                )}
-              </View>
-
-              <Image
-                source={camImage}
-                style={styles.glassProfile}
-                resizeMode="stretch"
-              />
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.caseProfile}>
-          <Image
-            source={kasaImage}
-            style={styles.casePhoto}
-            resizeMode="stretch"
-          />
-          <Text style={styles.caseLabel}>
-            ALT KASA
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.value}>
-        Toplam genişlik: {format(calc.width, 0)} mm
-      </Text>
-
-      <Text style={styles.value}>
-        Toplam yükseklik: {format(calc.height, 0)} mm
-      </Text>
-
-      <Text style={styles.value}>
-        Panel adedi: {calc.panels}
-      </Text>
-
-      <Text style={styles.value}>
-        Net cam: {format(calc.netWidth, 2)} ×{' '}
-        {format(calc.netHeight, 1)} mm
-      </Text>
-
-      <Text style={styles.value}>
-        Cam üst/alt profil kesimi:{' '}
-        {format(calc.glassProfileLength, 2)} mm
-      </Text>
-
-      <Text style={styles.note}>
-        Çizim şematiktir. Gerçek profil fotoğrafları
-        ince şeritlere yerleştirilmiştir; teknik ölçekli
-        profil kesit çizimi değildir.
-      </Text>
-    </View>
-  );
-}
-
-function ProfileCard({ title, source, length, quantity }) {
-  return (
-    <View style={styles.profileCard}>
-      <Text style={styles.profileTitle}>
-        {title}
-      </Text>
-
-      <Image
-        source={source}
-        style={styles.profileImage}
-        resizeMode="contain"
-      />
-
-      <View style={styles.profileInfo}>
-        <Text style={styles.profileMeasure}>
-          Kesim ölçüsü: {format(length, 2)} mm
-        </Text>
-
-        <Text style={styles.profileQuantity}>
-          Adet: {quantity}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function AluminumCutList({ calc }) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.section}>
-        Alüminyum Profil Kesim Listesi
-      </Text>
-
-      <Text style={styles.subheading}>
-        Kasa Profilleri
-      </Text>
-
-      <Text style={styles.note}>
-        Kasa profilleri toplam genişlik ölçüsünde,
-        düşümsüz ve tek parça kesilir.
-      </Text>
-
-      <ProfileCard
-        title="Üst Kasa Profili"
-        source={kasaImage}
-        length={calc.caseProfileLength}
-        quantity={calc.upperCaseQty}
-      />
-
-      <ProfileCard
-        title="Alt Kasa Profili"
-        source={kasaImage}
-        length={calc.caseProfileLength}
-        quantity={calc.lowerCaseQty}
-      />
-
-      <View style={styles.divider} />
-
-      <Text style={styles.subheading}>
-        Cam Profilleri
-      </Text>
-
-      <Text style={styles.note}>
-        Her panel eninden otomatik 10 mm düşülür.
-      </Text>
-
-      <ProfileCard
-        title="Cam Üst Profili"
-        source={camImage}
-        length={calc.glassProfileLength}
-        quantity={calc.upperGlassQty}
-      />
-
-      <ProfileCard
-        title="Cam Alt Profili"
-        source={camImage}
-        length={calc.glassProfileLength}
-        quantity={calc.lowerGlassQty}
-      />
-
-      <View style={styles.divider} />
-
-      {calc.valid ? (
-        <>
-          <Text style={styles.value}>
-            Toplam parça: {calc.aluminumTotalPieces} adet
-          </Text>
-
-          <Text style={styles.total}>
-            TOPLAM ALÜMİNYUM:{' '}
-            {format(calc.aluminumTotalLength / 1000, 2)} metre
-          </Text>
-        </>
-      ) : (
-        <Text style={styles.error}>
-          Geçerli ölçüler girildiğinde kesim listesi hesaplanır.
-        </Text>
-      )}
     </View>
   );
 }
@@ -373,8 +139,10 @@ export default function App() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Cam ve alüminyum otomatik kesim hesaplama
+          Otomatik cam kesim ve fiyat hesaplama
         </Text>
+
+        {/* MÜŞTERİ BİLGİLERİ */}
 
         <View style={styles.card}>
           <Text style={styles.section}>
@@ -385,6 +153,8 @@ export default function App() {
           {field('project', 'Proje / Uygulama Yeri', true)}
         </View>
 
+        {/* ÖLÇÜLER */}
+
         <View style={styles.card}>
           <Text style={styles.section}>
             Ölçüler (mm)
@@ -394,10 +164,14 @@ export default function App() {
           {field('height', 'Toplam Yükseklik (mm)')}
           {field('panels', 'Panel Adedi')}
 
-          <Text style={styles.value}>
-            Panel eni: {format(calc.panelWidth, 2)} mm
-          </Text>
+          {calc.valid && (
+            <Text style={styles.value}>
+              Panel eni: {format(calc.panelWidth, 2)} mm
+            </Text>
+          )}
         </View>
+
+        {/* CAM KESİM LİSTESİ */}
 
         <View style={styles.card}>
           <Text style={styles.section}>
@@ -431,9 +205,7 @@ export default function App() {
           )}
         </View>
 
-        <PanelDrawing calc={calc} />
-
-        <AluminumCutList calc={calc} />
+        {/* FİYAT TEKLİFİ */}
 
         <View style={styles.card}>
           <Text style={styles.section}>
@@ -453,19 +225,19 @@ export default function App() {
 
           <View style={styles.divider} />
 
-          <Text>
+          <Text style={styles.priceLine}>
             Cam balkon: {format(calc.material)} TL
           </Text>
 
-          <Text>
+          <Text style={styles.priceLine}>
             İskonto: -{format(calc.discount)} TL
           </Text>
 
-          <Text>
+          <Text style={styles.priceLine}>
             Ara toplam: {format(calc.subtotal)} TL
           </Text>
 
-          <Text>
+          <Text style={styles.priceLine}>
             KDV: {format(calc.vat)} TL
           </Text>
 
@@ -473,6 +245,8 @@ export default function App() {
             GENEL TOPLAM: {format(calc.total)} TL
           </Text>
         </View>
+
+        {/* OTOMATİK KAYIT */}
 
         <Pressable
           style={styles.button}
@@ -489,10 +263,9 @@ export default function App() {
         </Pressable>
 
         <Text style={styles.note}>
-          Kesim ölçüleri belirlediğiniz kurallara göre
-          hesaplanır. Gerçek imalat öncesinde kontrol
-          edilmelidir. Toplam alüminyum uzunluğuna
-          kesim firesi dahil değildir.
+          Cam kesim ölçüleri belirlenen kurallara göre
+          hesaplanır. Gerçek imalat öncesinde
+          ölçülerin kontrol edilmesi gerekir.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -568,14 +341,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FBFDFF',
   },
 
-  subheading: {
-    fontWeight: '700',
-    color: '#35566C',
-    marginBottom: 9,
-    marginTop: 5,
-    fontSize: 15,
-  },
-
   value: {
     fontWeight: '800',
     color: '#164F77',
@@ -597,112 +362,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  drawing: {
-    borderWidth: 2,
-    borderColor: '#34566B',
-    marginTop: 15,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-
-  caseProfile: {
-    height: 22,
-    backgroundColor: '#B8C4CC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-
-  casePhoto: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-    opacity: 0.85,
-  },
-
-  caseLabel: {
-    color: '#173D59',
-    fontSize: 10,
-    fontWeight: '900',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    paddingHorizontal: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-
-  panelRow: {
-    flexDirection: 'row',
-    height: 170,
-  },
-
-  panel: {
-    flex: 1,
-    minWidth: 0,
-    borderRightColor: '#34566B',
-  },
-
-  glassProfile: {
-    width: '100%',
-    height: 8,
-    backgroundColor: '#A4B5C0',
-  },
-
-  glass: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  panelNumber: {
-    color: '#174769',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-
-  profileCard: {
-    marginTop: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#DDE6EE',
-    borderRadius: 12,
-    backgroundColor: '#FBFDFF',
-  },
-
-  profileTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#173D59',
-    marginBottom: 8,
-  },
-
-  profileImage: {
-    width: '100%',
-    height: 125,
-    backgroundColor: '#F2F5F8',
-    borderRadius: 8,
-  },
-
-  profileInfo: {
-    marginTop: 10,
-  },
-
-  profileMeasure: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#164F77',
-    marginBottom: 5,
-  },
-
-  profileQuantity: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#536B7C',
-  },
-
   divider: {
     height: 1,
     backgroundColor: '#E4EAF0',
     marginVertical: 12,
+  },
+
+  priceLine: {
+    fontSize: 14,
+    color: '#35566C',
+    marginVertical: 5,
   },
 
   total: {

@@ -1,478 +1,363 @@
 import React, { useEffect, useMemo, useState } from 'react';
-
 import {
-  Alert,
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  SafeAreaView,
+  Alert, ScrollView, View, Text, TextInput, Pressable,
+  StyleSheet, SafeAreaView,
 } from 'react-native';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculate } from './src/calculations';
 
 const STORAGE_KEY = 'camBalkonProDraft';
-const WING_KEY = 'camBalkonProWingSettings';
-
 const initial = {
-  customer: '',
-  project: '',
-  width: '1000',
-  height: '1650',
-  panels: '4',
-  price: '3500',
-  installation: '0',
-  transport: '0',
-  other: '0',
-  discount: '0',
-  vat: '20',
+  customer: '', project: '', width: '1000', height: '1650', panels: '4',
+  price: '3500', installation: '0', transport: '0', other: '0',
+  discount: '0', vat: '20',
 };
 
-const directions = [
-  { value: 'right', label: 'Sağa Açılır' },
-  { value: 'left', label: 'Sola Açılır' },
-  { value: 'fixed', label: 'Sabit' },
-];
-
-const holeTypes = ['Yok', 'D1', 'D2', 'D1+D2'];
-
-function defaultWing(index) {
-  const defaults = [
-    { direction: 'right', holeType: 'D1' },
-    { direction: 'right', holeType: 'Yok' },
-    { direction: 'right', holeType: 'Yok' },
-    { direction: 'fixed', holeType: 'D2' },
-  ];
-
-  const selected = defaults[index] || {
-    direction: 'right',
-    holeType: 'Yok',
-  };
-
-  return {
-    direction: selected.direction,
-    holeType: selected.holeType,
-    D1: {
-      diameter: '20',
-      x: '80',
-      y: '150',
-    },
-    D2: {
-      diameter: '20',
-      x: '80',
-      y: '150',
-    },
-  };
-}
+const defaultWing = index => ({
+  direction: index === 3 ? 'Sabit' : 'Sağ',
+  holeType: index === 0 ? 'D1' : index === 3 ? 'D2' : 'Yok',
+  diameter: '20', x: '80', y: '150',
+});
 
 function format(value, digits = 2) {
   const n = Number(value);
-
-  return (Number.isFinite(n) ? n : 0).toLocaleString(
-    'tr-TR',
-    {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }
-  );
+  return (Number.isFinite(n) ? n : 0).toLocaleString('tr-TR', {
+    minimumFractionDigits: digits, maximumFractionDigits: digits,
+  });
 }
 
-function toNumber(value) {
-  const n = Number(String(value ?? '').replace(',', '.'));
-  return Number.isFinite(n) ? n : NaN;
+function numeric(value) {
+  return Number(String(value ?? '').trim().replace(',', '.'));
 }
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  textMode = false,
-}) {
+function Field({ label, value, onChangeText, textMode = false }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-
       <TextInput
         style={styles.input}
         value={String(value ?? '')}
         onChangeText={onChangeText}
-        keyboardType={
-          textMode ? 'default' : 'decimal-pad'
-        }
+        keyboardType={textMode ? 'default' : 'decimal-pad'}
         placeholder={textMode ? 'Bilgi giriniz' : '0'}
       />
     </View>
   );
 }
 
-function ChoiceRow({
-  title,
-  options,
-  value,
-  onChange,
-}) {
+function OptionPicker({ label, value, options, onChange }) {
   return (
-    <View style={styles.choiceSection}>
-      <Text style={styles.label}>{title}</Text>
-
-      <View style={styles.choiceWrap}>
-        {options.map(option => {
-          const selected = option.value === value;
-
-          return (
-            <Pressable
-              key={option.value}
-              onPress={() => onChange(option.value)}
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.optionRow}>
+        {options.map(option => (
+          <Pressable
+            key={option}
+            onPress={() => onChange(option)}
+            style={[
+              styles.option,
+              value === option && styles.optionSelected,
+            ]}
+          >
+            <Text
               style={[
-                styles.choice,
-                selected && styles.choiceSelected,
+                styles.optionText,
+                value === option && styles.optionTextSelected,
               ]}
             >
-              <Text
-                style={[
-                  styles.choiceText,
-                  selected && styles.choiceTextSelected,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+              {option}
+            </Text>
+          </Pressable>
+        ))}
       </View>
     </View>
   );
 }
 
-function selectedHoles(wing) {
-  if (!wing) return [];
+function holeWarning(wing, glassWidth, glassHeight) {
+  if (wing.holeType === 'Yok') return '';
 
-  if (wing.holeType === 'D1+D2') {
-    return ['D1', 'D2'];
+  const d = numeric(wing.diameter);
+  const x = numeric(wing.x);
+  const y = numeric(wing.y);
+
+  if (
+    ![d, x, y].every(Number.isFinite) ||
+    d <= 0 || x < 0 || y < 0
+  ) {
+    return 'Delik çapı ve merkez mesafelerini kontrol edin.';
   }
 
   if (
-    wing.holeType === 'D1' ||
-    wing.holeType === 'D2'
+    x - d / 2 < 0 ||
+    x + d / 2 > glassWidth ||
+    y - d / 2 < 0 ||
+    y + d / 2 > glassHeight
   ) {
-    return [wing.holeType];
+    return 'Delik cam sınırlarının dışına taşıyor.';
   }
 
-  return [];
-}
-
-function checkHole(hole, width, height) {
-  const diameter = toNumber(hole.diameter);
-  const x = toNumber(hole.x);
-  const y = toNumber(hole.y);
-
-  if (
-    !Number.isFinite(diameter) ||
-    !Number.isFinite(x) ||
-    !Number.isFinite(y)
-  ) {
-    return false;
-  }
-
-  if (diameter <= 0) return false;
-
-  const radius = diameter / 2;
-
-  return (
-    x >= radius &&
-    y >= radius &&
-    x <= width - radius &&
-    y <= height - radius
-  );
-}
-
-function HoleEditor({
-  name,
-  hole,
-  onChange,
-  glassWidth,
-  glassHeight,
-}) {
-  const valid = checkHole(
-    hole,
-    glassWidth,
-    glassHeight
-  );
-
-  return (
-    <View style={styles.holeEditor}>
-      <Text style={styles.holeTitle}>
-        {name} Delik Ayarları
-      </Text>
-
-      <Field
-        label="Delik Çapı (mm)"
-        value={hole.diameter}
-        onChangeText={value =>
-          onChange('diameter', value)
-        }
-      />
-
-      <Field
-        label="Soldan Delik Merkezi (mm)"
-        value={hole.x}
-        onChangeText={value =>
-          onChange('x', value)
-        }
-      />
-
-      <Field
-        label="Üstten Delik Merkezi (mm)"
-        value={hole.y}
-        onChangeText={value =>
-          onChange('y', value)
-        }
-      />
-
-      <Text
-        style={
-          valid ? styles.successText : styles.error
-        }
-      >
-        {valid
-          ? 'Delik konumu cam sınırları içerisinde.'
-          : 'Uyarı: Delik ölçüsü veya konumu cam sınırları dışında.'}
-      </Text>
-    </View>
-  );
-}
-
-function WingEditor({
-  wing,
-  index,
-  onDirection,
-  onHoleType,
-  onHoleChange,
-  glassWidth,
-  glassHeight,
-}) {
-  const activeHoles = selectedHoles(wing);
-
-  return (
-    <View style={styles.wingCard}>
-      <Text style={styles.wingTitle}>
-        {index + 1}. Cam Kanadı
-      </Text>
-
-      <ChoiceRow
-        title="Kanat Açılma Yönü"
-        value={wing.direction}
-        onChange={onDirection}
-        options={directions}
-      />
-
-      <ChoiceRow
-        title="Cam Delik Tipi"
-        value={wing.holeType}
-        onChange={onHoleType}
-        options={holeTypes.map(type => ({
-          value: type,
-          label: type === 'Yok'
-            ? 'Delik Yok'
-            : type,
-        }))}
-      />
-
-      {activeHoles.map(name => (
-        <HoleEditor
-          key={name}
-          name={name}
-          hole={wing[name]}
-          glassWidth={glassWidth}
-          glassHeight={glassHeight}
-          onChange={(key, value) =>
-            onHoleChange(name, key, value)
-          }
-        />
-      ))}
-    </View>
-  );
-}
-
-function directionSymbol(direction) {
-  if (direction === 'left') return '←';
-  if (direction === 'fixed') return 'SABİT';
-  return '→';
+  return '';
 }
 
 function PanelDrawing({ calc, wings }) {
   const count = Math.max(
     1,
-    Math.min(
-      100,
-      Math.floor(Number(calc.panels) || 1)
-    )
+    Math.min(100, Math.floor(Number(calc.panels) || 1))
   );
+
+  const [progress, setProgress] = useState(0);
+  const [stackSide, setStackSide] = useState('Sağ');
+  const [trackWidth, setTrackWidth] = useState(1);
 
   const glassWidth = Number(calc.netWidth) || 0;
   const glassHeight = Number(calc.netHeight) || 0;
+  const panelWidth = 100 / count;
 
-  const drawingHeight = 190;
+  // Kanatlar sırayla açılır.
+  // Önden görünüşte daralarak üst üste toplanır.
+  // Sabit kanatlar hareket etmez.
+  const panels = Array.from({ length: count }, (_, index) => {
+    const wing = wings[index] || defaultWing(index);
+
+    const sequence =
+      stackSide === 'Sağ' ? count - 1 - index : index;
+
+    const phase = Math.max(
+      0,
+      Math.min(1, (progress / 100) * count - sequence)
+    );
+
+    const moving = wing.direction !== 'Sabit';
+    const folded = moving ? phase : 0;
+
+    const closedLeft = index * panelWidth;
+
+    const targetLeft =
+      stackSide === 'Sağ'
+        ? 100 - (count - index) * 2.1
+        : index * 2.1;
+
+    return {
+      index,
+      wing,
+      folded,
+      left: closedLeft + (targetLeft - closedLeft) * folded,
+      width: panelWidth + (2.1 - panelWidth) * folded,
+    };
+  });
+
+  const setFromTouch = event => {
+    const x = event.nativeEvent.locationX;
+
+    setProgress(
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round((x / trackWidth) * 100)
+        )
+      )
+    );
+  };
 
   return (
     <View style={styles.card}>
       <Text style={styles.section}>
-        Cam Balkon Panel Çizimi
+        Hareketli Cam Balkon Ön Görünüşü
       </Text>
 
       <Text style={styles.note}>
-        Kanat yönleri ve delik konumları manuel
-        ayarlanabilir. Çizim şematiktir.
+        Camlar seçilen tarafta sırayla üst üste toplanır.
+        Sabit kanatlar yerinde kalır.
       </Text>
 
-      <View style={styles.dimensionTop}>
-        <Text style={styles.dimensionText}>
-          ← {format(calc.width, 0)} mm →
-        </Text>
+      <View style={styles.optionRow}>
+        {['Sağ', 'Sol'].map(side => (
+          <Pressable
+            key={side}
+            onPress={() => setStackSide(side)}
+            style={[
+              styles.option,
+              stackSide === side && styles.optionSelected,
+            ]}
+          >
+            <Text
+              style={[
+                styles.optionText,
+                stackSide === side && styles.optionTextSelected,
+              ]}
+            >
+              {side} tarafta topla
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      <View style={styles.drawing}>
-        <View style={styles.caseBar}>
-          <Text style={styles.caseText}>
-            ÜST KASA
+      <Text style={styles.value}>
+        Açılma: %{progress}
+      </Text>
+
+      <View style={styles.motionFrame}>
+        <View style={styles.motionCase}>
+          <Text style={styles.caseBarText}>
+            ÜST KASA · 60 mm
           </Text>
+        </View>
+
+        <View style={styles.motionArea}>
+          {panels.map(p => {
+            const { index, wing, folded } = p;
+
+            const validHole =
+              wing.holeType !== 'Yok' &&
+              !holeWarning(
+                wing,
+                glassWidth,
+                glassHeight
+              );
+
+            const x = numeric(wing.x);
+            const y = numeric(wing.y);
+
+            const holeLeft =
+              glassWidth > 0
+                ? Math.max(
+                    0,
+                    Math.min(100, (x / glassWidth) * 100)
+                  )
+                : 0;
+
+            const holeTop =
+              glassHeight > 0
+                ? Math.max(
+                    0,
+                    Math.min(100, (y / glassHeight) * 100)
+                  )
+                : 0;
+
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.motionPanel,
+                  {
+                    left: `${p.left}%`,
+                    width: `${Math.max(0.5, p.width)}%`,
+                    zIndex: folded > 0 ? index + 2 : 1,
+                    backgroundColor:
+                      index % 2
+                        ? '#C8E6F5'
+                        : '#D8EEF9',
+                  },
+                ]}
+              >
+                <View style={styles.motionWingProfile} />
+
+                <View style={styles.motionGlass}>
+                  {folded < 0.65 && (
+                    <>
+                      <Text style={styles.panelNumber}>
+                        {count <= 12 ? index + 1 : ''}
+                      </Text>
+
+                      <Text style={styles.directionArrow}>
+                        {count <= 12
+                          ? wing.direction === 'Sağ'
+                            ? '→'
+                            : wing.direction === 'Sol'
+                              ? '←'
+                              : 'S'
+                          : ''}
+                      </Text>
+                    </>
+                  )}
+
+                  {validHole && folded < 0.75 && (
+                    <View
+                      style={[
+                        styles.holeMark,
+                        {
+                          left: `${holeLeft}%`,
+                          top: `${holeTop}%`,
+                          width: 10,
+                          height: 10,
+                        },
+                      ]}
+                    />
+                  )}
+                </View>
+
+                <View style={styles.motionWingProfile} />
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.motionCase}>
+          <Text style={styles.caseBarText}>
+            ALT KASA · 60 mm
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.note}>
+        Cam üst/alt kanat profili: 45 mm.
+        Sağ/sol sabit yan profil: 40 mm.
+      </Text>
+
+      <Text style={styles.label}>
+        Hareketi parmağınızla ayarlayın
+      </Text>
+
+      <View
+        style={styles.motionSliderTouch}
+        onLayout={event =>
+          setTrackWidth(
+            Math.max(
+              1,
+              event.nativeEvent.layout.width
+            )
+          )
+        }
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={setFromTouch}
+        onResponderMove={setFromTouch}
+      >
+        <View style={styles.motionSliderTrack}>
+          <View
+            style={[
+              styles.motionSliderFill,
+              { width: `${progress}%` },
+            ]}
+          />
         </View>
 
         <View
           style={[
-            styles.panelRow,
-            { height: drawingHeight },
+            styles.motionSliderThumb,
+            { left: `${progress}%` },
           ]}
-        >
-          {Array.from(
-            { length: count },
-            (_, index) => {
-              const wing =
-                wings[index] || defaultWing(index);
+        />
+      </View>
 
-              const holes = selectedHoles(wing);
-
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.panel,
-                    {
-                      borderRightWidth:
-                        index === count - 1
-                          ? 0
-                          : 1,
-                    },
-                  ]}
-                >
-                  <View style={styles.glassRail} />
-
-                  <View
-                    style={[
-                      styles.glass,
-                      {
-                        backgroundColor:
-                          index % 2 === 0
-                            ? '#DCEFF8'
-                            : '#C7E5F5',
-                      },
-                    ]}
-                  >
-                    {count <= 12 && (
-                      <>
-                        <Text
-                          style={styles.panelNumber}
-                        >
-                          {index + 1}
-                        </Text>
-
-                        <Text
-                          style={styles.directionText}
-                        >
-                          {directionSymbol(
-                            wing.direction
-                          )}
-                        </Text>
-                      </>
-                    )}
-
-                    {holes.map(name => {
-                      const hole = wing[name];
-
-                      if (
-                        !checkHole(
-                          hole,
-                          glassWidth,
-                          glassHeight
-                        )
-                      ) {
-                        return null;
-                      }
-
-                      const x =
-                        toNumber(hole.x) /
-                        glassWidth;
-
-                      const y =
-                        toNumber(hole.y) /
-                        glassHeight;
-
-                      const diameter =
-                        toNumber(hole.diameter);
-
-                      const radius =
-                        Math.max(
-                          3,
-                          Math.min(
-                            8,
-                            (diameter /
-                              glassWidth) *
-                              45
-                          )
-                        );
-
-                      return (
-                        <View
-                          key={name}
-                          style={[
-                            styles.holeDot,
-                            {
-                              left:
-                                `${x * 100}%`,
-                              top:
-                                `${y * 100}%`,
-                              width:
-                                radius * 2,
-                              height:
-                                radius * 2,
-                              borderRadius:
-                                radius,
-                              marginLeft:
-                                -radius,
-                              marginTop:
-                                -radius,
-                            },
-                          ]}
-                        />
-                      );
-                    })}
-                  </View>
-
-                  <View style={styles.glassRail} />
-                </View>
-              );
-            }
-          )}
-        </View>
-
-        <View style={styles.caseBar}>
-          <Text style={styles.caseText}>
-            ALT KASA
-          </Text>
-        </View>
+      <View style={styles.motionButtons}>
+        {[
+          ['Tam Kapat', 0],
+          ['Yarı Aç', 50],
+          ['Tam Aç', 100],
+        ].map(([label, value]) => (
+          <Pressable
+            key={label}
+            style={styles.motionButton}
+            onPress={() => setProgress(value)}
+          >
+            <Text style={styles.motionButtonText}>
+              {label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <Text style={styles.value}>
@@ -493,9 +378,9 @@ function PanelDrawing({ calc, wings }) {
       </Text>
 
       <Text style={styles.note}>
-        Kırmızı halkalar delik merkezlerini temsil
-        eder. Delik ölçüleri aşağıdaki kanat
-        ayarlarından değiştirilebilir.
+        Bu çizim şematik bir hareketli ön görünüştür.
+        Gerçek 3B dönme veya ray mekanizması hesaplanmaz.
+        Kesim ölçüleri değiştirilmez.
       </Text>
     </View>
   );
@@ -505,51 +390,132 @@ function WingSettings({
   calc,
   wings,
   updateWing,
-  updateHole,
 }) {
+  const count = Math.max(
+    1,
+    Math.min(
+      100,
+      Math.floor(Number(calc.panels) || 1)
+    )
+  );
+
   return (
     <View style={styles.card}>
       <Text style={styles.section}>
-        Kanat Yönleri ve Cam Delikleri
+        Kanat Yönü ve Delik Ayarları
       </Text>
 
       <Text style={styles.note}>
-        Her kanat için açılma yönünü, delik
-        tipini ve delik merkezinin konumunu
-        ayrı ayrı belirleyebilirsiniz.
+        Delik konumu camın sol ve üst kenarından
+        delik merkezine ölçülür (mm).
+        D1 ve D2 delik isimleridir;
+        çap ve konumları manuel girilir.
       </Text>
 
-      {wings.map((wing, index) => (
-        <WingEditor
-          key={index}
-          index={index}
-          wing={wing}
-          glassWidth={Number(calc.netWidth)}
-          glassHeight={Number(calc.netHeight)}
-          onDirection={value =>
-            updateWing(
-              index,
-              'direction',
-              value
-            )
-          }
-          onHoleType={value =>
-            updateWing(
-              index,
-              'holeType',
-              value
-            )
-          }
-          onHoleChange={(name, key, value) =>
-            updateHole(
-              index,
-              name,
-              key,
-              value
-            )
-          }
-        />
-      ))}
+      {Array.from(
+        { length: count },
+        (_, index) => {
+          const wing =
+            wings[index] || defaultWing(index);
+
+          const warning = holeWarning(
+            wing,
+            Number(calc.netWidth),
+            Number(calc.netHeight)
+          );
+
+          return (
+            <View
+              key={index}
+              style={styles.wingCard}
+            >
+              <Text style={styles.wingTitle}>
+                {index + 1}. Kanat
+              </Text>
+
+              <OptionPicker
+                label="Kanat yönü"
+                value={wing.direction}
+                options={[
+                  'Sağ',
+                  'Sol',
+                  'Sabit',
+                ]}
+                onChange={value =>
+                  updateWing(
+                    index,
+                    'direction',
+                    value
+                  )
+                }
+              />
+
+              <OptionPicker
+                label="Cam deliği"
+                value={wing.holeType}
+                options={[
+                  'Yok',
+                  'D1',
+                  'D2',
+                ]}
+                onChange={value =>
+                  updateWing(
+                    index,
+                    'holeType',
+                    value
+                  )
+                }
+              />
+
+              {wing.holeType !== 'Yok' && (
+                <>
+                  <Field
+                    label="Delik çapı (mm)"
+                    value={wing.diameter}
+                    onChangeText={value =>
+                      updateWing(
+                        index,
+                        'diameter',
+                        value
+                      )
+                    }
+                  />
+
+                  <Field
+                    label="Soldan delik merkezi (mm)"
+                    value={wing.x}
+                    onChangeText={value =>
+                      updateWing(
+                        index,
+                        'x',
+                        value
+                      )
+                    }
+                  />
+
+                  <Field
+                    label="Üstten delik merkezi (mm)"
+                    value={wing.y}
+                    onChangeText={value =>
+                      updateWing(
+                        index,
+                        'y',
+                        value
+                      )
+                    }
+                  />
+
+                  {!!warning && (
+                    <Text style={styles.error}>
+                      {warning}
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+          );
+        }
+      )}
     </View>
   );
 }
@@ -560,7 +526,7 @@ export default function App() {
   const [wings, setWings] = useState(
     Array.from(
       { length: 4 },
-      (_, index) => defaultWing(index)
+      (_, i) => defaultWing(i)
     )
   );
 
@@ -569,9 +535,10 @@ export default function App() {
   useEffect(() => {
     async function loadDraft() {
       try {
-        const saved = await AsyncStorage.getItem(
-          STORAGE_KEY
-        );
+        const saved =
+          await AsyncStorage.getItem(
+            STORAGE_KEY
+          );
 
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -581,13 +548,15 @@ export default function App() {
             typeof parsed === 'object' &&
             !Array.isArray(parsed)
           ) {
-            const allowed = Object.keys(initial);
+            const allowed =
+              Object.keys(initial);
 
-            const savedData = Object.fromEntries(
-              Object.entries(parsed).filter(
-                ([key]) => allowed.includes(key)
-              )
-            );
+            const savedData =
+              Object.fromEntries(
+                Object.entries(parsed).filter(
+                  ([key]) => allowed.includes(key)
+                )
+              );
 
             setData({
               ...initial,
@@ -597,14 +566,27 @@ export default function App() {
         }
 
         const savedWings =
-          await AsyncStorage.getItem(WING_KEY);
+          await AsyncStorage.getItem(
+            'camBalkonProWings'
+          );
 
         if (savedWings) {
           const parsedWings =
             JSON.parse(savedWings);
 
           if (Array.isArray(parsedWings)) {
-            setWings(parsedWings);
+            setWings(
+              parsedWings
+                .slice(0, 100)
+                .map((wing, index) => ({
+                  ...defaultWing(index),
+                  ...(wing &&
+                  typeof wing === 'object' &&
+                  !Array.isArray(wing)
+                    ? wing
+                    : {}),
+                }))
+            );
           }
         }
       } catch (error) {
@@ -638,7 +620,7 @@ export default function App() {
     if (!loaded) return;
 
     AsyncStorage.setItem(
-      WING_KEY,
+      'camBalkonProWings',
       JSON.stringify(wings)
     ).catch(error => {
       console.warn(
@@ -648,84 +630,39 @@ export default function App() {
     });
   }, [wings, loaded]);
 
-  const set = key => value => {
+  const set = key => value =>
     setData(previous => ({
       ...previous,
       [key]: value,
     }));
-  };
-
-  const calc = useMemo(
-    () => calculate(data),
-    [data]
-  );
-
-  const panelCount = Math.max(
-    1,
-    Math.min(
-      100,
-      Math.floor(
-        Number(calc.panels) || 1
-      )
-    )
-  );
-
-  useEffect(() => {
-    if (!loaded) return;
-
-    setWings(previous => {
-      if (previous.length === panelCount) {
-        return previous;
-      }
-
-      return Array.from(
-        { length: panelCount },
-        (_, index) =>
-          previous[index] ||
-          defaultWing(index)
-      );
-    });
-  }, [panelCount, loaded]);
 
   const updateWing = (
     index,
     key,
     value
   ) => {
-    setWings(previous =>
-      previous.map((wing, i) =>
-        i === index
-          ? {
-              ...wing,
-              [key]: value,
-            }
-          : wing
-      )
-    );
+    setWings(previous => {
+      const next = [...previous];
+
+      while (next.length <= index) {
+        next.push(
+          defaultWing(next.length)
+        );
+      }
+
+      next[index] = {
+        ...next[index],
+        [key]: value,
+      };
+
+      return next;
+    });
   };
 
-  const updateHole = (
-    index,
-    name,
-    key,
-    value
-  ) => {
-    setWings(previous =>
-      previous.map((wing, i) => {
-        if (i !== index) {
-          return wing;
-        }
-
-        return {
-          ...wing,
-          [name]: {
-            ...wing[name],
-            [key]: value,
-          },
-        };
-      })
-    );
-  };
+  const calc = useMemo(
+    () => calculate(data),
+    [data]
+  );
 
   const field = (
     key,
@@ -758,8 +695,8 @@ export default function App() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Cam kesim, kanat yönleri,
-          delik konumları ve fiyat hesabı
+          Cam kesim, kanat yönü,
+          delik ve fiyat hesaplama
         </Text>
 
         <View style={styles.card}>
@@ -847,8 +784,7 @@ export default function App() {
             <Text style={styles.error}>
               Ölçüler geçersiz.
               Genişlik, yükseklik
-              ve panel adedini
-              kontrol edin.
+              ve panel adedini kontrol edin.
             </Text>
           )}
         </View>
@@ -864,7 +800,6 @@ export default function App() {
               calc={calc}
               wings={wings}
               updateWing={updateWing}
-              updateHole={updateHole}
             />
           </>
         )}
@@ -942,7 +877,7 @@ export default function App() {
           onPress={() =>
             Alert.alert(
               'Taslak',
-              'Müşteri, ölçü, kanat yönü ve delik ayarları otomatik olarak cihazda saklanıyor.'
+              'Bilgiler ve kanat ayarları otomatik olarak cihazda saklanıyor.'
             )
           }
         >
@@ -952,13 +887,11 @@ export default function App() {
         </Pressable>
 
         <Text style={styles.note}>
-          Kesim ve delik ölçüleri
-          gerçek imalat öncesinde
-          kontrol edilmelidir.
-          Deliklerin kenar mesafeleri
-          kullanılan bağlantı
-          elemanının teknik
-          gerekliliklerine uygun olmalıdır.
+          Cam kesim ve delik ölçüleri
+          imalat öncesinde kontrol edilmelidir.
+          Delik çapı ve kenar mesafesi
+          kullanılan bağlantı sistemine
+          uygun olmalıdır.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -1053,155 +986,7 @@ const styles = StyleSheet.create({
     color: '#C0392B',
     fontWeight: '700',
     marginTop: 8,
-  },
-
-  successText: {
-    color: '#18794E',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-
-  drawing: {
-    borderWidth: 2,
-    borderColor: '#34566B',
-    marginTop: 8,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-
-  dimensionTop: {
-    alignItems: 'center',
-    marginTop: 10,
-  },
-
-  dimensionText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#275B7A',
-  },
-
-  caseBar: {
-    height: 17,
-    backgroundColor: '#8597A4',
-    borderBottomWidth: 1,
-    borderBottomColor: '#536D7C',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  caseText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-
-  panelRow: {
-    flexDirection: 'row',
-  },
-
-  panel: {
-    flex: 1,
-    minWidth: 0,
-    borderRightColor: '#547083',
-  },
-
-  glassRail: {
-    height: 7,
-    backgroundColor: '#A8B7C1',
-  },
-
-  glass: {
-    flex: 1,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-
-  panelNumber: {
-    color: '#174769',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-
-  directionText: {
-    color: '#D87924',
-    fontWeight: '900',
-    fontSize: 16,
-    marginTop: 8,
-  },
-
-  holeDot: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: '#C0392B',
-    backgroundColor: '#FFFFFF',
-  },
-
-  wingCard: {
-    marginTop: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#DDE6EE',
-    borderRadius: 12,
-    backgroundColor: '#FBFDFF',
-  },
-
-  wingTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#173D59',
-    marginBottom: 10,
-  },
-
-  choiceSection: {
-    marginBottom: 12,
-  },
-
-  choiceWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginTop: 5,
-  },
-
-  choice: {
-    paddingVertical: 9,
-    paddingHorizontal: 11,
-    borderWidth: 1,
-    borderColor: '#C6D6E2',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
-
-  choiceSelected: {
-    backgroundColor: '#205E85',
-    borderColor: '#205E85',
-  },
-
-  choiceText: {
-    color: '#35566C',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-  choiceTextSelected: {
-    color: '#FFFFFF',
-  },
-
-  holeEditor: {
-    backgroundColor: '#F0F6FA',
-    borderRadius: 10,
-    padding: 11,
-    marginTop: 8,
-  },
-
-  holeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#205E85',
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
   divider: {
@@ -1235,4 +1020,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 15,
   },
-});
+
+  motionFrame:

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -7,6 +6,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   Pressable,
   StyleSheet,
   SafeAreaView,
@@ -14,6 +14,15 @@ import {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculate } from './src/calculations';
+
+// Profil fotoğrafları
+const kasaImage = require(
+  './katlanir-cam-aluminyum-duz-kasa-profil-30d010.png'
+);
+
+const camImage = require(
+  './katlanir-cam-aluminyum-baza-profili-fi-d-8261.png'
+);
 
 const initial = {
   customer: '',
@@ -50,6 +59,136 @@ function Field({ label, value, onChangeText, textMode = false }) {
         keyboardType={textMode ? 'default' : 'decimal-pad'}
         placeholder={textMode ? 'Bilgi giriniz' : '0'}
       />
+    </View>
+  );
+}
+
+// CAM BALKON PANEL ÇİZİMİ
+function PanelDrawing({ calc }) {
+  const count = Math.max(
+    1,
+    Math.min(100, Math.floor(Number(calc.panels) || 1))
+  );
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.section}>
+        Cam Balkon Panel Çizimi
+      </Text>
+
+      <Text style={styles.note}>
+        Üst ve alt kasa aynı profil fotoğrafıyla gösterilir.
+        Cam profilleri her panelde ayrı bulunur.
+      </Text>
+
+      <View style={styles.drawing}>
+        {/* ÜST KASA */}
+        <View style={styles.caseProfile}>
+          <Image
+            source={kasaImage}
+            style={styles.casePhoto}
+            resizeMode="stretch"
+          />
+
+          <Text style={styles.caseLabel}>
+            ÜST KASA
+          </Text>
+        </View>
+
+        {/* CAM PANELLER */}
+        <View style={styles.panelRow}>
+          {Array.from({ length: count }, (_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.panel,
+                {
+                  borderRightWidth:
+                    index === count - 1 ? 0 : 1,
+                },
+              ]}
+            >
+              <Image
+                source={camImage}
+                style={styles.glassProfile}
+                resizeMode="stretch"
+              />
+
+              <View
+                style={[
+                  styles.glass,
+                  {
+                    backgroundColor:
+                      index % 2 === 0
+                        ? '#D8EEF9'
+                        : '#C4E4F5',
+                  },
+                ]}
+              >
+                {count <= 12 && (
+                  <Text
+                    style={[
+                      styles.panelNumber,
+                      {
+                        fontSize: count > 8 ? 10 : 13,
+                      },
+                    ]}
+                  >
+                    {index + 1}
+                  </Text>
+                )}
+              </View>
+
+              <Image
+                source={camImage}
+                style={styles.glassProfile}
+                resizeMode="stretch"
+              />
+            </View>
+          ))}
+        </View>
+
+        {/* ALT KASA */}
+        <View style={styles.caseProfile}>
+          <Image
+            source={kasaImage}
+            style={styles.casePhoto}
+            resizeMode="stretch"
+          />
+
+          <Text style={styles.caseLabel}>
+            ALT KASA
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.value}>
+        Toplam genişlik: {format(calc.width, 0)} mm
+      </Text>
+
+      <Text style={styles.value}>
+        Toplam yükseklik: {format(calc.height, 0)} mm
+      </Text>
+
+      <Text style={styles.value}>
+        Panel adedi: {calc.panels}
+      </Text>
+
+      <Text style={styles.value}>
+        Net cam: {format(calc.netWidth, 2)} ×{' '}
+        {format(calc.netHeight, 1)} mm
+      </Text>
+
+      <Text style={styles.value}>
+        Cam üst/alt profil kesimi:{' '}
+        {format(calc.glassProfileLength, 2)} mm
+      </Text>
+
+      <Text style={styles.note}>
+        Çizim şematiktir. Gerçek profil fotoğrafları
+        ince şeritlere yerleştirilmiştir; teknik ölçekli
+        profil kesit çizimi değildir.
+      </Text>
     </View>
   );
 }
@@ -143,7 +282,6 @@ export default function App() {
         </Text>
 
         {/* MÜŞTERİ BİLGİLERİ */}
-
         <View style={styles.card}>
           <Text style={styles.section}>
             Müşteri ve Proje
@@ -154,7 +292,6 @@ export default function App() {
         </View>
 
         {/* ÖLÇÜLER */}
-
         <View style={styles.card}>
           <Text style={styles.section}>
             Ölçüler (mm)
@@ -172,7 +309,6 @@ export default function App() {
         </View>
 
         {/* CAM KESİM LİSTESİ */}
-
         <View style={styles.card}>
           <Text style={styles.section}>
             Cam Kesim Listesi
@@ -205,8 +341,10 @@ export default function App() {
           )}
         </View>
 
-        {/* FİYAT TEKLİFİ */}
+        {/* CAM BALKON PANEL ÇİZİMİ */}
+        {calc.valid && <PanelDrawing calc={calc} />}
 
+        {/* FİYAT TEKLİFİ */}
         <View style={styles.card}>
           <Text style={styles.section}>
             Teklif Hesabı
@@ -247,7 +385,6 @@ export default function App() {
         </View>
 
         {/* OTOMATİK KAYIT */}
-
         <Pressable
           style={styles.button}
           onPress={() =>
@@ -360,6 +497,68 @@ const styles = StyleSheet.create({
     color: '#C0392B',
     fontWeight: '700',
     marginTop: 8,
+  },
+
+  drawing: {
+    borderWidth: 2,
+    borderColor: '#34566B',
+    marginTop: 15,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+
+  caseProfile: {
+    height: 22,
+    backgroundColor: '#B8C4CC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+
+  casePhoto: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    opacity: 0.85,
+  },
+
+  caseLabel: {
+    color: '#173D59',
+    fontSize: 10,
+    fontWeight: '900',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+
+  panelRow: {
+    flexDirection: 'row',
+    height: 170,
+  },
+
+  panel: {
+    flex: 1,
+    minWidth: 0,
+    borderRightColor: '#34566B',
+  },
+
+  glassProfile: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#A4B5C0',
+  },
+
+  glass: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  panelNumber: {
+    color: '#174769',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 
   divider: {

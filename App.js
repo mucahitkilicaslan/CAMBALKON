@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
 import {
   Alert,
   ScrollView,
@@ -8,7 +15,9 @@ import {
   Pressable,
   StyleSheet,
   SafeAreaView,
+  PanResponder,
 } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculate } from './src/calculations';
 
@@ -64,6 +73,15 @@ function normalizeWing(wing, index) {
   const direction =
     directionMap[wing.direction] || wing.direction;
 
+  const legacyHole =
+    wing.diameter !== undefined
+      ? {
+          diameter: String(wing.diameter),
+          x: String(wing.x ?? '80'),
+          y: String(wing.y ?? '150'),
+        }
+      : {};
+
   return {
     ...base,
     direction: ['Sağ', 'Sol', 'Sabit'].includes(direction)
@@ -76,25 +94,13 @@ function normalizeWing(wing, index) {
       : base.holeType,
     D1: {
       ...base.D1,
+      ...legacyHole,
       ...(wing.D1 || {}),
-      ...(!wing.D1 && wing.diameter !== undefined
-        ? {
-            diameter: String(wing.diameter),
-            x: String(wing.x ?? '80'),
-            y: String(wing.y ?? '150'),
-          }
-        : {}),
     },
     D2: {
       ...base.D2,
+      ...legacyHole,
       ...(wing.D2 || {}),
-      ...(!wing.D2 && wing.diameter !== undefined
-        ? {
-            diameter: String(wing.diameter),
-            x: String(wing.x ?? '80'),
-            y: String(wing.y ?? '150'),
-          }
-        : {}),
     },
   };
 }
@@ -118,6 +124,10 @@ function format(value, digits = 2) {
       maximumFractionDigits: digits,
     }
   );
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function Field({
@@ -289,7 +299,7 @@ function WingSettings({
       </Text>
 
       <Text style={styles.note}>
-        Her kanadın açılma yönünü ve deliklerini
+        Her kanadın yönünü ve deliklerini
         ayrı ayrı ayarlayabilirsiniz.
         Delik mesafeleri camın sol ve üst
         kenarından delik merkezine ölçülür.
@@ -340,10 +350,87 @@ function WingSettings({
   );
 }
 
+function MotionSlider({
+  value,
+  onChange,
+}) {
+  const [width, setWidth] = useState(1);
+
+  const valueRef = useRef(value);
+  const widthRef = useRef(width);
+  const changeRef = useRef(onChange);
+  const dragStartRef = useRef(0);
+
+  valueRef.current = value;
+  widthRef.current = width;
+  changeRef.current = onChange;
+
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+
+      onPanResponderTerminationRequest: () => false,
+
+      onPanResponderGrant: () => {
+        dragStartRef.current = valueRef.current;
+      },
+
+      onPanResponderMove: (_event, gesture) => {
+        const next =
+          dragStartRef.current +
+          (gesture.dx / Math.max(1, widthRef.current)) * 100;
+
+        const rounded = clamp(
+          Math.round(next),
+          0,
+          100
+        );
+
+        if (rounded !== valueRef.current) {
+          valueRef.current = rounded;
+          changeRef.current(rounded);
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <View
+      style={styles.motionSliderTouch}
+      onLayout={event => {
+        const nextWidth = Math.max(
+          1,
+          event.nativeEvent.layout.width
+        );
+
+        widthRef.current = nextWidth;
+        setWidth(nextWidth);
+      }}
+      {...responder.panHandlers}
+    >
+      <View style={styles.motionSliderTrack}>
+        <View
+          style={[
+            styles.motionSliderFill,
+            { width: `${value}%` },
+          ]}
+        />
+      </View>
+
+      <View
+        style={[
+          styles.motionSliderThumb,
+          { left: `${value}%` },
+        ]}
+      />
+    </View>
+  );
+}
+
 function PanelDrawing({ calc, wings }) {
   const [progress, setProgress] = useState(0);
   const [stackSide, setStackSide] = useState('Sağ');
-  const [trackWidth, setTrackWidth] = useState(1);
 
   const count = Math.max(
     1,
@@ -352,12 +439,8 @@ function PanelDrawing({ calc, wings }) {
 
   const glassWidth = Number(calc.netWidth) || 0;
   const glassHeight = Number(calc.netHeight) || 0;
-
   const panelWidth = 100 / count;
 
-  // Şematik ön görünüş:
-  // Kanatlar sırayla daralır ve seçilen tarafta toplanır.
-  // Sabit kanatlar hareket etmez.
   const movingIndexes = [];
 
   for (let i = 0; i < count; i++) {
@@ -384,12 +467,10 @@ function PanelDrawing({ calc, wings }) {
 
       const phase =
         moving && movingCount > 0
-          ? Math.max(
+          ? clamp(
+              (progress / 100) * movingCount - sequence,
               0,
-              Math.min(
-                1,
-                (progress / 100) * movingCount - sequence
-              )
+              1
             )
           : 0;
 
@@ -419,20 +500,6 @@ function PanelDrawing({ calc, wings }) {
     }
   );
 
-  const changeProgress = event => {
-    const x = event.nativeEvent.locationX;
-
-    setProgress(
-      Math.max(
-        0,
-        Math.min(
-          100,
-          Math.round((x / trackWidth) * 100)
-        )
-      )
-    );
-  };
-
   return (
     <View style={styles.card}>
       <Text style={styles.section}>
@@ -442,7 +509,7 @@ function PanelDrawing({ calc, wings }) {
       <Text style={styles.note}>
         Camlar seçilen tarafta sırayla
         üst üste toplanır. Sabit kanatlar
-        hareket etmez.
+        yerinde kalır.
       </Text>
 
       <OptionPicker
@@ -466,7 +533,6 @@ function PanelDrawing({ calc, wings }) {
         <View style={styles.motionArea}>
           {panels.map(panel => {
             const { index, wing, phase } = panel;
-
             const holes = activeHoles(wing);
 
             return (
@@ -572,36 +638,41 @@ function PanelDrawing({ calc, wings }) {
         Hareketi Kaydırarak Ayarlayın
       </Text>
 
-      <View
-        style={styles.motionSliderTouch}
-        onLayout={event =>
-          setTrackWidth(
-            Math.max(
-              1,
-              event.nativeEvent.layout.width
-            )
-          )
-        }
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onResponderGrant={changeProgress}
-        onResponderMove={changeProgress}
-      >
-        <View style={styles.motionSliderTrack}>
-          <View
-            style={[
-              styles.motionSliderFill,
-              { width: `${progress}%` },
-            ]}
-          />
-        </View>
+      <MotionSlider
+        value={progress}
+        onChange={setProgress}
+      />
 
-        <View
-          style={[
-            styles.motionSliderThumb,
-            { left: `${progress}%` },
-          ]}
-        />
+      <View style={styles.fineAdjustRow}>
+        <Pressable
+          style={styles.fineAdjustButton}
+          onPress={() =>
+            setProgress(previous =>
+              clamp(previous - 1, 0, 100)
+            )
+          }
+        >
+          <Text style={styles.fineAdjustText}>
+            −1
+          </Text>
+        </Pressable>
+
+        <Text style={styles.fineAdjustValue}>
+          %{progress}
+        </Text>
+
+        <Pressable
+          style={styles.fineAdjustButton}
+          onPress={() =>
+            setProgress(previous =>
+              clamp(previous + 1, 0, 100)
+            )
+          }
+        >
+          <Text style={styles.fineAdjustText}>
+            +1
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.motionButtons}>
@@ -642,7 +713,7 @@ function PanelDrawing({ calc, wings }) {
       </Text>
 
       <Text style={styles.note}>
-        Hareketli ön görünüş şematiktir.
+        Bu hareketli ön görünüş şematiktir.
         Gerçek ray ve dönme mekanizmasının
         fiziksel simülasyonu değildir.
       </Text>
@@ -1311,14 +1382,14 @@ const styles = StyleSheet.create({
   },
 
   motionSliderTouch: {
-    height: 38,
+    height: 52,
     justifyContent: 'center',
     marginTop: 8,
     marginHorizontal: 12,
   },
 
   motionSliderTrack: {
-    height: 7,
+    height: 8,
     backgroundColor: '#D5E2EC',
     borderRadius: 5,
     overflow: 'hidden',
@@ -1331,20 +1402,51 @@ const styles = StyleSheet.create({
 
   motionSliderThumb: {
     position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#205E85',
     borderWidth: 3,
     borderColor: '#FFFFFF',
-    marginLeft: -10,
+    marginLeft: -13,
     elevation: 3,
+  },
+
+  fineAdjustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 12,
+  },
+
+  fineAdjustButton: {
+    backgroundColor: '#E4EFF6',
+    borderWidth: 1,
+    borderColor: '#B5CEDD',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 9,
+  },
+
+  fineAdjustText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#205E85',
+  },
+
+  fineAdjustValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#173D59',
+    minWidth: 65,
+    textAlign: 'center',
   },
 
   motionButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 12,
+    marginTop: 8,
     marginBottom: 10,
   },
 

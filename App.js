@@ -1,4 +1,3 @@
-
 import React, {
   useEffect,
   useMemo,
@@ -457,6 +456,22 @@ function PanelDrawing({ calc, wings }) {
 
   const movingCount = movingIndexes.length;
 
+  // YARI AÇ DÜZELTMESİ
+  // Tek sayılı hareketli kanatlarda yukarı yuvarlar.
+  // Örneğin 5 kanatta 3, 7 kanatta 4 kanat toplanır.
+  const halfOpen = () => {
+    if (movingCount === 0) {
+      setProgress(0);
+      return;
+    }
+
+    const halfPanels = Math.ceil(movingCount / 2);
+    const halfProgress =
+      (halfPanels / movingCount) * 100;
+
+    setProgress(halfProgress);
+  };
+
   const panels = Array.from(
     { length: count },
     (_, index) => {
@@ -520,7 +535,7 @@ function PanelDrawing({ calc, wings }) {
       />
 
       <Text style={styles.value}>
-        Açılma Oranı: %{progress}
+        Açılma Oranı: %{format(progress, 1)}
       </Text>
 
       <View style={styles.motionFrame}>
@@ -658,7 +673,7 @@ function PanelDrawing({ calc, wings }) {
         </Pressable>
 
         <Text style={styles.fineAdjustValue}>
-          %{progress}
+          %{format(progress, 1)}
         </Text>
 
         <Pressable
@@ -684,7 +699,11 @@ function PanelDrawing({ calc, wings }) {
           <Pressable
             key={label}
             style={styles.motionButton}
-            onPress={() => setProgress(value)}
+            onPress={
+              label === 'Yarı Aç'
+                ? halfOpen
+                : () => setProgress(value)
+            }
           >
             <Text style={styles.motionButtonText}>
               {label}
